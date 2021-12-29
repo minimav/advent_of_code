@@ -133,7 +133,7 @@ def compare_scanners(scanner_1_coords, scanner_2_coords) -> dict:
 
 def main():
     path = "data/input_19.txt"
-    # path = "data/example_19_1.txt"
+    # path = "data/example_19.txt"
     with open(path, "r") as f:
         scanners = {}
         scanner_coords = []
