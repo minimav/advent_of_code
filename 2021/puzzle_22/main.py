@@ -12,9 +12,9 @@ class Volume:
 
     def volume(self) -> int:
         return (
-            (self.x[-1] - self.x[0])
-            * (self.y[-1] - self.y[0])
-            * (self.z[-1] - self.z[0])
+            (self.x[-1] - self.x[0] + 1)
+            * (self.y[-1] - self.y[0] + 1)
+            * (self.z[-1] - self.z[0] + 1)
         )
 
     def intersection(
@@ -23,7 +23,7 @@ class Volume:
         def intersect(dim):
             min_1, max_1 = getattr(self, dim)
             min_2, max_2 = getattr(other, dim)
-            if min_1 >= max_2 or min_2 >= max_1:
+            if min_1 > max_2 or min_2 > max_1:
                 return None
             else:
                 return (max(min_1, min_2), min(max_1, max_2))
@@ -35,8 +35,16 @@ class Volume:
             return None
 
         intersection = Volume(x=x_intersection, y=y_intersection, z=z_intersection)
+        self_diff = self.subtract(intersection)
+        other_diff = other.subtract(intersection)
 
-        return self.subtract(intersection), intersection, other.subtract(intersection)
+        # include the intersection twice to match adding the input volumes
+        diff_volume = sum(v.volume() for v in self_diff) 
+        diff_volume += sum(v.volume() for v in other_diff)
+        diff_volume += 2 * intersection.volume()
+        assert diff_volume == self.volume() + other.volume(), (self, other)
+
+        return self_diff, intersection, other_diff
 
     def subtract(self, other: tp.Optional["Volume"]) -> tp.Optional[tp.List["Volume"]]:
         # assume here that other is a subset of self (usually an intersection)
@@ -48,14 +56,14 @@ class Volume:
                 if min_1 == min_2:
                     return None
                 else:
-                    return (min_1, min_2)
+                    return (min_1, min_2 - 1)
             elif cmp == "=":
                 return (min_2, max_2)
             else:
                 if max_1 == max_2:
                     return None
                 else:
-                    return (max_2, max_1)
+                    return (max_2 + 1, max_1)
 
         remainders = []
         for x_cmp, y_cmp, z_cmp in itertools.product(("<=>"), repeat=3):
@@ -76,16 +84,16 @@ class Volume:
 
 def test_subset_intersection_1():
     # 2 x 2 x 2 area, 8 cubes - intersect with one of those cubes
-    v_1 = Volume((-1, 1), (-1, 1), (-1, 1))
-    v_2 = Volume((0, 1), (0, 1), (0, 1))
+    v_1 = Volume((0, 1), (0, 1), (0, 1))
+    v_2 = Volume((1, 1), (1, 1), (1, 1))
     expected_v_1_remainder = [
-        Volume((0, 1), (0, 1), (-1, 0)),
-        Volume((0, 1), (-1, 0), (0, 1)),
-        Volume((-1, 0), (0, 1), (0, 1)),
-        Volume((-1, 0), (0, 1), (-1, 0)),
-        Volume((0, 1), (-1, 0), (-1, 0)),
-        Volume((-1, 0), (-1, 0), (0, 1)),
-        Volume((-1, 0), (-1, 0), (-1, 0)),
+        Volume((1, 1), (1, 1), (0, 0)),
+        Volume((0, 0), (1, 1), (1, 1)),
+        Volume((1, 1), (0, 0), (1, 1)),
+        Volume((0, 0), (0, 0), (0, 0)),
+        Volume((1, 1), (0, 0), (0, 0)),
+        Volume((0, 0), (1, 1), (0, 0)),
+        Volume((0, 0), (0, 0), (1, 1))
     ]
     v_1_remainder, intersection, v_2_remainder = v_1.intersection(v_2)
     assert intersection == v_2
@@ -95,11 +103,11 @@ def test_subset_intersection_1():
 
 def test_subset_intersection_2():
     # 3 x 3 x 3 area, 27 cubes - intersect with the middle of those cubes
-    v_1 = Volume((0, 3), (0, 3), (0, 3))
-    v_2 = Volume((1, 2), (1, 2), (1, 2))
+    v_1 = Volume((0, 2), (0, 2), (0, 2))
+    v_2 = Volume((1, 1), (1, 1), (1, 1))
     expected_v_1_remainder = [
         Volume(x, y, z)
-        for x, y, z in itertools.product(((0, 1), (1, 2), (2, 3)), repeat=3)
+        for x, y, z in itertools.product(((0, 0), (1, 1), (2, 2)), repeat=3)
         if Volume(x, y, z) != v_2
     ]
     v_1_remainder, intersection, v_2_remainder = v_1.intersection(v_2)
@@ -110,10 +118,10 @@ def test_subset_intersection_2():
 
 def test_subset_intersection_3():
     # 2 x 2 x 2 area, 8 cubes - intersect with half of them
-    v_1 = Volume((-1, 1), (-1, 1), (-1, 1))
-    v_2 = Volume((-1, 1), (-1, 1), (0, 1))
+    v_1 = Volume((0, 1), (0, 1), (0, 1))
+    v_2 = Volume((0, 1), (0, 1), (1, 1))
     expected_v_1_remainder = [
-        Volume((-1, 1), (-1, 1), (-1, 0)),
+        Volume((0, 1), (0, 1), (0, 0)),
     ]
     v_1_remainder, intersection, v_2_remainder = v_1.intersection(v_2)
     assert intersection == v_2
@@ -123,12 +131,12 @@ def test_subset_intersection_3():
 
 def test_subset_intersection_4():
     # 2 x 2 x 2 area, 8 cubes - intersect with 2 them
-    v_1 = Volume((-1, 1), (-1, 1), (-1, 1))
-    v_2 = Volume((-1, 1), (0, 1), (0, 1))
+    v_1 = Volume((0, 1), (0, 1), (0, 1))
+    v_2 = Volume((0, 1), (1, 1), (1, 1))
     expected_v_1_remainder = [
-        Volume((-1, 1), (0, 1), (-1, 0)),
-        Volume((-1, 1), (-1, 0), (0, 1)),
-        Volume((-1, 1), (-1, 0), (-1, 0)),
+        Volume((0, 1), (1, 1), (0, 0)),
+        Volume((0, 1), (0, 0), (1, 1)),
+        Volume((0, 1), (0, 0), (0, 0)),
     ]
     v_1_remainder, intersection, v_2_remainder = v_1.intersection(v_2)
     assert intersection == v_2
@@ -138,17 +146,23 @@ def test_subset_intersection_4():
 
 def test_general_intersection_1():
     # 2  2 x 1 x 1 areas, 1 cube overlap so two remainders
-    v_1 = Volume((-1, 1), (0, 1), (0, 1))
-    v_2 = Volume((0, 2), (0, 1), (0, 1))
-    expected_v_1_remainder = [Volume((-1, 0), (0, 1), (0, 1))]
-    expected_v_2_remainder = [Volume((1, 2), (0, 1), (0, 1))]
-    expected_intersection = Volume((0, 1), (0, 1), (0, 1))
+    v_1 = Volume((-1, 0), (0, 0), (0, 0))
+    v_2 = Volume((0, 1), (0, 0), (0, 0))
+    expected_v_1_remainder = [Volume((-1, -1), (0, 0), (0, 0))]
+    expected_v_2_remainder = [Volume((1, 1), (0, 0), (0, 0))]
+    expected_intersection = Volume((0, 0), (0, 0), (0, 0))
     v_1_remainder, intersection, v_2_remainder = v_1.intersection(v_2)
     assert intersection == expected_intersection
     assert set(v_1_remainder) == set(expected_v_1_remainder)
     assert set(v_2_remainder) == set(expected_v_2_remainder)
 
 
+def test_volume():
+    for v in range(10):
+        assert Volume((0, v), (0, v), (0, v)).volume() == (v + 1) ** 3
+
+
+test_volume()
 test_subset_intersection_1()
 test_subset_intersection_2()
 test_subset_intersection_3()
@@ -156,9 +170,14 @@ test_subset_intersection_4()
 test_general_intersection_1()
 
 
+def num_cubes_on(volumes):
+    # assumes disjoint
+    return sum(v.volume() for v in volumes)
+
+
 def main():
-    # path = "data/input_22.txt"
-    path = "data/example_22.txt"
+    path = "data/input_22.txt"
+    #path = "data/example_22_b.txt"
 
     instructions = []
     with open(path, "r") as f:
@@ -173,34 +192,38 @@ def main():
             instructions.append((change, volume))
 
     currently_on = set()
-    for change, new_volume in instructions[:-2]:
-        print(f"Applying {change} for {new_volume}")
+    #bounding_volume = Volume((-50, 50), (-50, 50), (-50, 50))
+    for change, new_volume in instructions:
+
+        # only for first part of the puzzle
+        #if bounding_volume.intersection(new_volume) is None:
+        #    print(f"Skipping {change} for {new_volume} as no intersection with {bounding_volume}")
+        #    continue
+
+        print(f"Applying {change} for {new_volume}, currently {len(currently_on)} volumes are on")
         if not currently_on and change == "on":
             currently_on = {new_volume}
             continue
 
         next_currently_on = set()
+        if change == "on":
+            next_currently_on.add(new_volume)
+    
         for on_volume in currently_on:
             try:
-                on_volume_diff, intersection, new_volume_bits = on_volume.intersection(
-                    new_volume
-                )
+                on_volume_diff, *_ = on_volume.intersection(new_volume)
             except TypeError:
-                # no intersection case
+                # no intersection case - remains on regardless of this change
+                next_currently_on.add(on_volume)
                 continue
 
-            if change == "on":
-                # add the new volume as one to reduce the number of volumes we're keeping track of
-                next_currently_on = next_currently_on.union(
-                    [new_volume, *on_volume_diff]
-                )
-            else:
-                next_currently_on = next_currently_on.union(on_volume_diff)
+            next_currently_on = next_currently_on.union(on_volume_diff)
 
         currently_on = next_currently_on
+        print(num_cubes_on(currently_on))
 
-    print(sum(v.volume() for v in currently_on))
-    # print(instructions)
+    #print(currently_on)
+    print(num_cubes_on(currently_on))
 
 
 if __name__ == "__main__":
