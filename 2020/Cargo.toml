@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 itertools = "0.10.2"
+advent_of_code_utils_rust = { path = "../advent_of_code_utils_rust" }
 
 [[example]]
 name = "puzzle_1"
