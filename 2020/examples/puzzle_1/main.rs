@@ -33,7 +33,6 @@ fn find_triple_product(filename: String, target: i32) -> Result<i32, String> {
     for raw_value in contents.lines() {
         let mut new_groups = HashSet::<Vec<i32>>::new();
         let value: i32 = raw_value.trim().parse().unwrap();
-        
         for group in _groups.iter() {
             let mut new_group = group.to_vec().clone();
             new_group.push(value);
@@ -50,27 +49,26 @@ fn find_triple_product(filename: String, target: i32) -> Result<i32, String> {
         }
         let initial_group = vec![value];
         new_groups.insert(initial_group);
-        
         for group in new_groups.iter() {
             _groups.insert(group.to_vec());
-        };
+        }
     }
     return Err(format!("No values found which sum to {}", target));
 }
 
-
 fn main() {
     let start = Instant::now();
     let filenames: Vec<String> = vec![
-        "src/example_input.txt".to_string(),
-        "src/input.txt".to_string(),
+        "examples/puzzle_1/example_input.txt".to_string(),
+        "examples/puzzle_1/input.txt".to_string(),
     ];
     let target: i32 = 2020;
     for filename in filenames {
         find_product(filename, target).expect("Input has no solution");
     }
 
-    find_triple_product("src/input.txt".to_string(), target).expect("Input has no solution");
+    find_triple_product("examples/puzzle_1/input.txt".to_string(), target)
+        .expect("Input has no solution");
 
     let duration = start.elapsed();
     println!("Took {:?} to solve this puzzle", duration);
