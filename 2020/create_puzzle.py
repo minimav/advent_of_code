@@ -5,11 +5,11 @@ from pathlib import Path
 
 MAIN_TEMPLATE = """use std::time::Instant;
 
-fn part_1(contents: &String) {
+fn part_1(contents: &str) {
     println!("Answer for part 1 is: {}", 0);
 }
 
-fn part_2(contents: &String) {
+fn part_2(contents: &str) {
     println!("Answer for part 2 is: {}", 0);
 }
 
