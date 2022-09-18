@@ -89,7 +89,7 @@ fn part_2(contents: &str) {
     let mut perturb_index = 0;
 
     // outer loop we perturb the next jump/nop command each time
-    loop {
+    let answer = 'outer: loop {
         let (commands, new_perturb_index) =
             parse_instructions_with_perturbation(contents, perturb_index);
         perturb_index = new_perturb_index;
@@ -97,15 +97,13 @@ fn part_2(contents: &str) {
         let mut seen_indexes: HashSet<i32> = HashSet::new();
         let mut current_index: i32 = 0;
         let num_lines = contents.lines().count() as i32;
-        let mut success = false;
 
         // inner loop traverses the commands with the single perturbation
         loop {
             if current_index < 0 {
                 panic!("Index went negative, this shouldn't happen!");
             } else if current_index == num_lines {
-                success = true;
-                break;
+                break 'outer acc;
             } else if seen_indexes.contains(&current_index) {
                 break;
             }
@@ -114,12 +112,8 @@ fn part_2(contents: &str) {
             acc += acc_change;
             current_index += move_by
         }
-
-        if success {
-            println!("Answer to part 2 is: {}", acc);
-            break;
-        }
-    }
+    };
+    println!("Answer to part 2 is: {}", answer);
 }
 
 fn main() {
