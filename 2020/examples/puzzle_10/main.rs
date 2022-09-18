@@ -39,7 +39,7 @@ fn part_2(contents: &str) {
             continue;
         }
         // deal with -1, -2 and -3 index cases to see how many can reach this jolt
-        for offset in 1..4 {
+        for offset in 1..=3 {
             if index < offset {
                 break;
             }

@@ -34,7 +34,7 @@ fn compute_seat_id(row: isize, column: isize) -> isize {
 fn maximum_seat_id(contents: &str) -> isize {
     let mut max_seat_id: isize = 0;
     for boarding_pass in contents.lines() {
-        let row = parse_row(&boarding_pass[0..7]);
+        let row = parse_row(&boarding_pass[0..=6]);
         let column = parse_column(&boarding_pass[7..]);
         let seat_id = compute_seat_id(row, column);
         if seat_id > max_seat_id {
@@ -47,7 +47,7 @@ fn maximum_seat_id(contents: &str) -> isize {
 fn find_seat_id(contents: &str) -> isize {
     let mut all_seat_ids: HashSet<isize> = HashSet::new();
     for boarding_pass in contents.lines() {
-        let row = parse_row(&boarding_pass[0..7]);
+        let row = parse_row(&boarding_pass[0..=6]);
         let column = parse_column(&boarding_pass[7..]);
         let seat_id = compute_seat_id(row, column);
         all_seat_ids.insert(seat_id);
