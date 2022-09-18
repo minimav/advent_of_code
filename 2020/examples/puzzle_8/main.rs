@@ -30,7 +30,7 @@ fn part_1(contents: &str) {
     let mut current_index: i32 = 0;
     loop {
         if current_index < 0 {
-            panic!("Index went negative, this shouldn't happen!");
+            unreachable!()
         } else if seen_indexes.contains(&current_index) {
             break;
         }
@@ -80,7 +80,7 @@ fn parse_instructions_with_perturbation(
         }
     }
     if perturb_index < 0 {
-        panic!("No perturbation occurred, this shouldn't happen!");
+        unreachable!()
     }
     return (commands, perturb_index);
 }
@@ -101,7 +101,7 @@ fn part_2(contents: &str) {
         // inner loop traverses the commands with the single perturbation
         loop {
             if current_index < 0 {
-                panic!("Index went negative, this shouldn't happen!");
+                unreachable!()
             } else if current_index == num_lines {
                 break 'outer acc;
             } else if seen_indexes.contains(&current_index) {
