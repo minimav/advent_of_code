@@ -179,6 +179,228 @@ impl fmt::Display for Grid {
     }
 }
 
+#[derive(Debug)]
+struct SightLineGrid {
+    size: usize,
+    grid: Vec<Vec<char>>,
+}
+
+impl SightLineGrid {
+    fn new(size: usize, data: &str) -> SightLineGrid {
+        let mut grid: Vec<Vec<char>> = Vec::new();
+        for line in data.lines() {
+            let mut row: Vec<char> = Vec::new();
+            for char in line.chars() {
+                row.push(char);
+            }
+            grid.push(row)
+        }
+        SightLineGrid { size, grid }
+    }
+
+    fn up(&mut self, row: usize, col: usize) -> Option<char> {
+        let mut row_index = row;
+        while row_index > 0 {
+            row_index -= 1;
+            let char = self.grid[row_index][col];
+            if char != FLOOR {
+                return Some(char);
+            }
+        }
+        None
+    }
+
+    fn down(&mut self, row: usize, col: usize) -> Option<char> {
+        let mut row_index = row;
+        while row_index < self.size - 1 {
+            row_index += 1;
+            let char = self.grid[row_index][col];
+            if char != FLOOR {
+                return Some(char);
+            }
+        }
+        None
+    }
+
+    fn left(&mut self, row: usize, col: usize) -> Option<char> {
+        let mut col_index = col;
+        while col_index > 0 {
+            col_index -= 1;
+            let char = self.grid[row][col_index];
+            if char != FLOOR {
+                return Some(char);
+            }
+        }
+        None
+    }
+
+    fn right(&mut self, row: usize, col: usize) -> Option<char> {
+        let mut col_index = col + 1;
+        while col_index <= self.size - 1 {
+            let char = self.grid[row][col_index];
+            if char != FLOOR {
+                return Some(char);
+            }
+            col_index += 1
+        }
+        None
+    }
+
+    fn up_left(&mut self, row: usize, col: usize) -> Option<char> {
+        let mut col_index = col;
+        let mut row_index = row;
+        while col_index > 0 && row_index > 0 {
+            col_index -= 1;
+            row_index -= 1;
+            let char = self.grid[row_index][col_index];
+            if char != FLOOR {
+                return Some(char);
+            }
+        }
+        None
+    }
+
+    fn up_right(&mut self, row: usize, col: usize) -> Option<char> {
+        let mut col_index = col;
+        let mut row_index = row;
+        while col_index < self.size - 1 && row_index > 0 {
+            col_index += 1;
+            row_index -= 1;
+            let char = self.grid[row_index][col_index];
+            if char != FLOOR {
+                return Some(char);
+            }
+        }
+        None
+    }
+
+    fn down_left(&mut self, row: usize, col: usize) -> Option<char> {
+        let mut col_index = col;
+        let mut row_index = row;
+        while col_index > 0 && row_index < self.size - 1 {
+            col_index -= 1;
+            row_index += 1;
+            let char = self.grid[row_index][col_index];
+            if char != FLOOR {
+                return Some(char);
+            }
+        }
+        None
+    }
+
+    fn down_right(&mut self, row: usize, col: usize) -> Option<char> {
+        let mut col_index = col;
+        let mut row_index = row;
+        while col_index < self.size - 1 && row_index < self.size - 1 {
+            col_index += 1;
+            row_index += 1;
+            let char = self.grid[row_index][col_index];
+            if char != FLOOR {
+                return Some(char);
+            }
+        }
+        None
+    }
+
+    fn adjacency_count(&mut self, row: usize, col: usize) -> u32 {
+        let mut count: u32 = 0;
+        match self.down(row, col) {
+            Some(c) if c == OCCUPIED_SEAT => count += 1,
+            _ => {}
+        }
+        match self.up(row, col) {
+            Some(c) if c == OCCUPIED_SEAT => count += 1,
+            _ => {}
+        }
+        match self.right(row, col) {
+            Some(c) if c == OCCUPIED_SEAT => count += 1,
+            _ => {}
+        }
+        match self.left(row, col) {
+            Some(c) if c == OCCUPIED_SEAT => count += 1,
+            _ => {}
+        }
+        match self.down_left(row, col) {
+            Some(c) if c == OCCUPIED_SEAT => count += 1,
+            _ => {}
+        }
+        match self.down_right(row, col) {
+            Some(c) if c == OCCUPIED_SEAT => count += 1,
+            _ => {}
+        }
+        match self.up_left(row, col) {
+            Some(c) if c == OCCUPIED_SEAT => count += 1,
+            _ => {}
+        }
+        match self.up_right(row, col) {
+            Some(c) if c == OCCUPIED_SEAT => count += 1,
+            _ => {}
+        }
+        count
+    }
+
+    fn num_seats_of_type(&mut self, seat_type: &char) -> u32 {
+        let mut count: u32 = 0;
+        for row in self.grid.iter() {
+            for char in row.iter() {
+                if char == seat_type {
+                    count += 1
+                }
+            }
+        }
+        count
+    }
+
+    fn next_iteration(&mut self, row: usize, col: usize) -> char {
+        let count: u32 = self.adjacency_count(row, col);
+        let current: char = self.grid[row][col];
+        return {
+            if current == EMPTY_SEAT && count == 0 {
+                OCCUPIED_SEAT
+            } else if current == OCCUPIED_SEAT && count >= 5 {
+                EMPTY_SEAT
+            } else {
+                current
+            }
+        };
+    }
+
+    fn iteration(&mut self) -> (SightLineGrid, bool) {
+        let mut grid: Vec<Vec<char>> = Vec::new();
+        let mut changes = false;
+        for row_index in 0..self.size {
+            let mut row: Vec<char> = Vec::new();
+            for col_index in 0..self.size {
+                let new_char = self.next_iteration(row_index, col_index);
+                row.push(new_char);
+                let old_char = self.grid[row_index][col_index];
+                if old_char != new_char {
+                    changes = true
+                }
+            }
+            grid.push(row)
+        }
+        let new_grid = SightLineGrid {
+            size: self.size,
+            grid,
+        };
+        (new_grid, changes)
+    }
+}
+
+impl fmt::Display for SightLineGrid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut string_rep: String = String::new();
+        for row in self.grid.iter() {
+            for char in row.iter() {
+                string_rep.push(*char);
+            }
+            string_rep.push_str("\n");
+        }
+        write!(f, "{}", string_rep)
+    }
+}
+
 fn part_1(contents: &str) {
     let size = contents.lines().count();
     let mut grid = Grid::new(size, contents);
@@ -201,7 +423,24 @@ fn part_1(contents: &str) {
 }
 
 fn part_2(contents: &str) {
-    println!("Answer for part 2 is: {}", 0);
+    let size = contents.lines().count();
+    let mut grid = SightLineGrid::new(size, contents);
+
+    let mut iteration = 0;
+    loop {
+        let (new_grid, changes) = grid.iteration();
+        grid = new_grid;
+        //println!("{}\n{}", iteration, grid);
+        if !changes {
+            break;
+        }
+        iteration += 1;
+    }
+
+    println!(
+        "Answer for part 2 is:\n{}",
+        grid.num_seats_of_type(&OCCUPIED_SEAT)
+    );
 }
 
 fn main() {
