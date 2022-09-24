@@ -39,62 +39,129 @@ impl Direction {
     }
 }
 
-struct Location {
+struct ShipLocation {
     x: i32,
     y: i32,
     direction: Direction,
 }
 
-impl Location {
-    fn transform(&mut self, line: &str) {
-        let command = line.chars().next().unwrap();
-        let number = line[1..].parse::<i32>().unwrap();
-
+impl ShipLocation {
+    fn manhattan_distince(&self) -> i32 {
+        self.x.abs() + self.y.abs()
+    }
+    fn transform(&mut self, command: char, units: i32) {
         match command {
             'N' => {
-                self.y += number;
+                self.y += units;
             }
             'S' => {
-                self.y -= number;
+                self.y -= units;
             }
             'E' => {
-                self.x += number;
+                self.x += units;
             }
             'W' => {
-                self.x -= number;
+                self.x -= units;
             }
 
-            'L' => self.direction = Direction::rotate_anticlockwise(self.direction, number),
-            'R' => self.direction = Direction::rotate_clockwise(self.direction, number),
+            'L' => self.direction = Direction::rotate_anticlockwise(self.direction, units),
+            'R' => self.direction = Direction::rotate_clockwise(self.direction, units),
             'F' => match self.direction {
-                Direction::NORTH => self.y += number,
-                Direction::SOUTH => self.y -= number,
-                Direction::EAST => self.x += number,
-                Direction::WEST => self.x -= number,
-                _ => {}
+                Direction::NORTH => self.y += units,
+                Direction::SOUTH => self.y -= units,
+                Direction::EAST => self.x += units,
+                Direction::WEST => self.x -= units,
             },
             _ => {}
         }
     }
 }
 
+struct Waypoint {
+    relative_x: i32,
+    relative_y: i32,
+}
+
+impl Waypoint {
+    fn transform(&mut self, command: char, units: i32) {
+        match command {
+            'N' => {
+                self.relative_y += units;
+            }
+            'S' => {
+                self.relative_y -= units;
+            }
+            'E' => {
+                self.relative_x += units;
+            }
+            'W' => {
+                self.relative_x -= units;
+            }
+            _ => {}
+        }
+    }
+    fn rotate_clockwise(&mut self, degrees: i32) {
+        let radians = (degrees as f64).to_radians();
+        // we can do this because we know that we will only be rotating by multiples of 90
+        // degrees, therefore these are always +/-1
+        let sine_theta = radians.sin() as i32;
+        let cosine_theta = radians.cos() as i32;
+        let new_relative_x = self.relative_x * cosine_theta - self.relative_y * sine_theta;
+        let new_relative_y = self.relative_x * sine_theta + self.relative_y * cosine_theta;
+        self.relative_x = new_relative_x;
+        self.relative_y = new_relative_y;
+    }
+    fn rotate_anticlockwise(&mut self, degrees: i32) {
+        self.rotate_clockwise(360 - (degrees % 360));
+    }
+}
+
 fn part_1(contents: &str) {
-    let mut location = Location {
+    let mut ship_location = ShipLocation {
         x: 0,
         y: 0,
         direction: Direction::EAST,
     };
-    for command in contents.lines() {
-        location.transform(command);
+    for line in contents.lines() {
+        let command = line.chars().next().unwrap();
+        let units = line[1..].parse::<i32>().unwrap();
+        ship_location.transform(command, units);
     }
     println!(
         "Answer for part 1 is: {}",
-        location.x.abs() + location.y.abs()
+        ship_location.manhattan_distince()
     );
 }
 
 fn part_2(contents: &str) {
-    println!("Answer for part 2 is: {}", 0);
+    let mut ship_location = ShipLocation {
+        x: 0,
+        y: 0,
+        direction: Direction::EAST,
+    };
+    let mut waypoint = Waypoint {
+        relative_x: 10,
+        relative_y: 1,
+    };
+    for line in contents.lines() {
+        let command = line.chars().next().unwrap();
+        let units = line[1..].parse::<i32>().unwrap();
+
+        if String::from("NSEW").contains(command) {
+            waypoint.transform(command, units)
+        } else if command == 'F' {
+            ship_location.x += units * waypoint.relative_x;
+            ship_location.y += units * waypoint.relative_y;
+        } else if command == 'L' {
+            waypoint.rotate_clockwise(units)
+        } else {
+            waypoint.rotate_anticlockwise(units)
+        }
+    }
+    println!(
+        "Answer for part 1 is: {}",
+        ship_location.manhattan_distince()
+    );
 }
 
 fn main() {
