@@ -24,7 +24,6 @@ fn main() {
 """
 
 CARGO_TEMPLATE = """
-
 [[example]]
 name = "puzzle_{puzzle_number}"
 """
