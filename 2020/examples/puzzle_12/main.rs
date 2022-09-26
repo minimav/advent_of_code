@@ -1,3 +1,4 @@
+use rstest::*;
 use std::time::Instant;
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -8,35 +9,55 @@ enum Direction {
     WEST,
 }
 
-impl Direction {
-    fn degrees(&self) -> i32 {
-        match *self {
+impl From<&Direction> for i32 {
+    fn from(direction: &Direction) -> i32 {
+        match direction {
             Direction::NORTH => 0,
             Direction::EAST => 90,
             Direction::SOUTH => 180,
             Direction::WEST => 270,
         }
     }
+}
 
-    fn direction_from_degrees(degrees: i32) -> Option<Direction> {
+impl From<i32> for Direction {
+    fn from(degrees: i32) -> Direction {
         match degrees {
-            0 => Some(Direction::NORTH),
-            90 => Some(Direction::EAST),
-            180 => Some(Direction::SOUTH),
-            270 => Some(Direction::WEST),
-            _ => None,
+            0 => Direction::NORTH,
+            90 => Direction::EAST,
+            180 => Direction::SOUTH,
+            270 => Direction::WEST,
+            _ => panic!("Only multiples of 90 in [0, 360) are expected!"),
         }
     }
+}
 
-    fn rotate_clockwise(current_direction: Direction, degrees: i32) -> Direction {
-        let current_degrees = current_direction.degrees();
+impl From<char> for Direction {
+    fn from(direction: char) -> Direction {
+        match direction {
+            'N' => Direction::NORTH,
+            'E' => Direction::EAST,
+            'S' => Direction::SOUTH,
+            'W' => Direction::WEST,
+            _ => panic!("Only N, S, E and W are expected"),
+        }
+    }
+}
+
+impl Direction {
+    fn rotate_clockwise(&self, degrees: i32) -> Direction {
+        let current_degrees = i32::from(self);
         let degrees_after_rotation = (current_degrees + degrees) % 360;
-        Direction::direction_from_degrees(degrees_after_rotation).unwrap()
+        Direction::from(degrees_after_rotation)
     }
 
-    fn rotate_anticlockwise(current_direction: Direction, degrees: i32) -> Direction {
-        Direction::rotate_clockwise(current_direction, 360 - (degrees % 360))
+    fn rotate_anticlockwise(&self, degrees: i32) -> Direction {
+        self.rotate_clockwise(360 - (degrees % 360))
     }
+}
+
+trait Transform {
+    fn transform(&mut self, command: char, units: i32) -> ();
 }
 
 struct ShipLocation {
@@ -49,6 +70,9 @@ impl ShipLocation {
     fn manhattan_distince(&self) -> i32 {
         self.x.abs() + self.y.abs()
     }
+}
+
+impl Transform for ShipLocation {
     fn transform(&mut self, command: char, units: i32) {
         match command {
             'N' => {
@@ -64,15 +88,25 @@ impl ShipLocation {
                 self.x -= units;
             }
 
-            'L' => self.direction = Direction::rotate_anticlockwise(self.direction, units),
-            'R' => self.direction = Direction::rotate_clockwise(self.direction, units),
+            'L' => self.direction = Direction::rotate_anticlockwise(&self.direction, units),
+            'R' => self.direction = Direction::rotate_clockwise(&self.direction, units),
             'F' => match self.direction {
                 Direction::NORTH => self.y += units,
                 Direction::SOUTH => self.y -= units,
                 Direction::EAST => self.x += units,
                 Direction::WEST => self.x -= units,
             },
-            _ => {}
+            _ => panic!("Only commands N, S, E, W, L, R and R are supported"),
+        }
+    }
+}
+
+impl Default for ShipLocation {
+    fn default() -> Self {
+        ShipLocation {
+            x: 0,
+            y: 0,
+            direction: Direction::EAST,
         }
     }
 }
@@ -83,24 +117,10 @@ struct Waypoint {
 }
 
 impl Waypoint {
-    fn transform(&mut self, command: char, units: i32) {
-        match command {
-            'N' => {
-                self.relative_y += units;
-            }
-            'S' => {
-                self.relative_y -= units;
-            }
-            'E' => {
-                self.relative_x += units;
-            }
-            'W' => {
-                self.relative_x -= units;
-            }
-            _ => {}
-        }
-    }
     fn rotate_clockwise(&mut self, degrees: i32) {
+        if degrees % 90 != 0 {
+            panic!("Only rotations by multiples of 90 degrees are supported")
+        }
         let radians = (degrees as f64).to_radians();
         // we can do this because we know that we will only be rotating by multiples of 90
         // degrees, therefore these are always +/-1
@@ -116,12 +136,37 @@ impl Waypoint {
     }
 }
 
+impl Transform for Waypoint {
+    fn transform(&mut self, command: char, units: i32) {
+        match command {
+            'N' => {
+                self.relative_y += units;
+            }
+            'S' => {
+                self.relative_y -= units;
+            }
+            'E' => {
+                self.relative_x += units;
+            }
+            'W' => {
+                self.relative_x -= units;
+            }
+            _ => panic!("Only commands N, S, E and W are supported"),
+        }
+    }
+}
+
+impl Default for Waypoint {
+    fn default() -> Self {
+        Waypoint {
+            relative_x: 10,
+            relative_y: 1,
+        }
+    }
+}
+
 fn part_1(contents: &str) {
-    let mut ship_location = ShipLocation {
-        x: 0,
-        y: 0,
-        direction: Direction::EAST,
-    };
+    let mut ship_location = ShipLocation::default();
     for line in contents.lines() {
         let command = line.chars().next().unwrap();
         let units = line[1..].parse::<i32>().unwrap();
@@ -134,15 +179,8 @@ fn part_1(contents: &str) {
 }
 
 fn part_2(contents: &str) {
-    let mut ship_location = ShipLocation {
-        x: 0,
-        y: 0,
-        direction: Direction::EAST,
-    };
-    let mut waypoint = Waypoint {
-        relative_x: 10,
-        relative_y: 1,
-    };
+    let mut ship_location = ShipLocation::default();
+    let mut waypoint = Waypoint::default();
     for line in contents.lines() {
         let command = line.chars().next().unwrap();
         let units = line[1..].parse::<i32>().unwrap();
@@ -162,6 +200,40 @@ fn part_2(contents: &str) {
         "Answer for part 1 is: {}",
         ship_location.manhattan_distince()
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn invalid_transform() {
+        let mut waypoint = Waypoint::default();
+        waypoint.transform('F', 100);
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_rotation() {
+        let mut waypoint = Waypoint::default();
+        waypoint.rotate_clockwise(35);
+    }
+
+    #[rstest]
+    #[case('E', 90)]
+    #[case('S', 180)]
+    #[case('W', 0)]
+    #[case('N', 270)]
+    fn rotation_direction_and_reverse(#[case] direction_char: char, #[case] degrees: i32) {
+        let direction: Direction = direction_char.into();
+        assert_eq!(
+            direction,
+            direction
+                .rotate_clockwise(degrees)
+                .rotate_anticlockwise(degrees)
+        );
+    }
 }
 
 fn main() {
