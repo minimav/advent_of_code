@@ -1,4 +1,4 @@
-use std::cmp;
+use advent_of_code_utils_rust::extended_euclidean_algorithm;
 use std::time::Instant;
 
 fn part_1(contents: &str) {
@@ -31,43 +31,6 @@ struct ModuloCondition {
     rem: i128,
 }
 
-struct GCD {
-    factor_a: i128,
-    factor_b: i128,
-    gcd: i128,
-}
-
-// extended euclidean algorithm
-fn extended_euclidean_algorithm(n: i128, N: i128) -> GCD {
-    let mut a = cmp::max(N, n);
-    let mut b = cmp::min(N, n);
-    let mut s = 0;
-    let mut s_1 = 1;
-    let mut t = 1;
-    let mut t_1 = 0;
-
-    loop {
-        let rem = a % b;
-        let quotient = a / b;
-        if rem == 0 {
-            return GCD {
-                factor_a: s,
-                factor_b: t,
-                gcd: b,
-            };
-        }
-        a = b;
-        b = rem;
-
-        let next_s = s_1 - quotient * s;
-        s_1 = s;
-        s = next_s;
-        let next_t = t_1 - quotient * t;
-        t_1 = t;
-        t = next_t;
-    }
-}
-
 /* Essentially the Chinese Remainder Theorem */
 fn part_2(bus_ids_raw: &str) -> i128 {
     let mut conditions: Vec<ModuloCondition> = Vec::new();
@@ -92,7 +55,7 @@ fn part_2(bus_ids_raw: &str) -> i128 {
     let Ms: Vec<i128> = conditions
         .iter()
         .zip(Ns.iter())
-        .map(|(condition, N)| extended_euclidean_algorithm(condition.n, *N).factor_a)
+        .map(|(condition, N)| extended_euclidean_algorithm(condition.n, *N).0)
         .collect();
 
     let chinese_remainder_answer: i128 = conditions
@@ -108,14 +71,6 @@ fn part_2(bus_ids_raw: &str) -> i128 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_gcd_1() {
-        let gcd = extended_euclidean_algorithm(45, 210);
-        assert_eq!(gcd.factor_a, -1);
-        assert_eq!(gcd.factor_b, 5);
-        assert_eq!(gcd.gcd, 15);
-    }
 
     #[test]
     fn test_case_1() {
