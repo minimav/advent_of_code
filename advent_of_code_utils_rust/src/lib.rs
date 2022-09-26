@@ -1,11 +1,12 @@
+use num::{traits::Zero, Integer};
 use std::cmp;
 
-pub fn greatest_common_divisor(x: i128, y: i128) -> i128 {
-    let mut a = cmp::max(x, y).abs();
-    let mut b = cmp::min(x, y).abs();
+pub fn greatest_common_divisor<T: Integer + Copy>(x: T, y: T) -> T {
+    let mut a = cmp::max(x, y);
+    let mut b = cmp::min(x, y);
     loop {
-        let rem = a % b;
-        if rem == 0 {
+        let rem = a.rem(b);
+        if rem == T::zero() {
             break;
         }
         a = b;
@@ -14,7 +15,7 @@ pub fn greatest_common_divisor(x: i128, y: i128) -> i128 {
     return b;
 }
 
-pub fn extended_euclidean_algorithm(x: i128, y: i128) -> (i128, i128) {
+pub fn extended_euclidean_algorithm<T: Integer + Copy>(x: T, y: T) -> (T, T) {
     let mut switch = false;
     let (mut a, mut b) = if x > y {
         (x, y)
@@ -22,15 +23,14 @@ pub fn extended_euclidean_algorithm(x: i128, y: i128) -> (i128, i128) {
         switch = true;
         (y, x)
     };
-    let mut s_current = 0;
-    let mut s_prev = 1;
-    let mut t_current = 1;
-    let mut t_prev = 0;
+    let mut s_current = T::zero();
+    let mut s_prev = T::one();
+    let mut t_current = T::one();
+    let mut t_prev = T::zero();
 
     loop {
-        let rem = a % b;
-        let quotient = a / b;
-        if rem == 0 {
+        let (quotient, rem) = a.div_mod_floor(&b);
+        if rem == T::zero() {
             return match switch {
                 false => (s_current, t_current),
                 _ => (t_current, s_current),
