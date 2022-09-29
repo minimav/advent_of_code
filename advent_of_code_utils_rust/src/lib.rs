@@ -1,4 +1,4 @@
-use num::{traits::Zero, Integer};
+use num::Integer;
 use std::cmp;
 
 pub fn greatest_common_divisor<T: Integer + Copy>(x: T, y: T) -> T {
