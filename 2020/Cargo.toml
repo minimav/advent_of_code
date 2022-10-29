@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 itertools = "0.10.2"
 advent_of_code_utils_rust = { path = "../advent_of_code_utils_rust" }
+regex = "1.6.0"
 
 [dev-dependencies]
 rstest = "0.15.0"
@@ -60,3 +61,6 @@ name = "puzzle_16"
 
 [[example]]
 name = "puzzle_17"
+
+[[example]]
+name = "puzzle_18"
