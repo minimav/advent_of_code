@@ -1,6 +1,7 @@
+use std::cmp;
 use std::time::Instant;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum Component {
     Add,
     Multiply,
@@ -55,14 +56,72 @@ fn parse_chunk(chunk: &str) -> Vec<Component> {
     output
 }
 
+fn extract_number(component: Component) -> Result<u128, String> {
+    match component {
+        Component::Integer { i } => Ok(i),
+        _ => return Err("First component must be an integer!".to_string()),
+    }
+}
+
+fn apply_operator(value: u128, operator: &Component, next_value: u128) -> Result<u128, String> {
+    match operator {
+        Component::Add => Ok(value + next_value),
+        Component::Multiply => Ok(value * next_value),
+        _ => return Err("Expected a * or + here!".to_string()),
+    }
+}
+
+fn evaluate_no_brackets(components: Vec<Component>) -> Component {
+    let mut value: u128 = 0;
+    let mut operator: Component = Component::Add;
+    for (i, component) in components.into_iter().enumerate() {
+        if i == 0 {
+            value += extract_number(component).unwrap();
+            continue;
+        } else if i % 2 == 1 {
+            operator = component;
+        } else {
+            let next_value = extract_number(component).unwrap();
+            value = apply_operator(value, &operator, next_value).unwrap();
+        }
+    }
+    Component::Integer { i: value }
+}
+
 fn evaluate_expression(expression: &str) -> u128 {
-    let components: Vec<Component> = expression
+    let mut components: Vec<Component> = expression
         .split_whitespace()
         .filter(|e| !e.is_empty())
         .flat_map(parse_chunk)
         .collect();
-    println!("{:?}", components);
-    0
+
+    loop {
+        let mut last_opening_bracket = 0;
+        let mut first_closing_bracket = 0;
+        for (i, component) in components.iter().enumerate() {
+            if component == &Component::OpenBracket {
+                last_opening_bracket = i
+            } else if component == &Component::CloseBracket {
+                first_closing_bracket = i;
+                break;
+            }
+        }
+        if cmp::max(last_opening_bracket, first_closing_bracket) == 0 {
+            return match evaluate_no_brackets(components) {
+                Component::Integer { i } => i,
+                _ => panic!("Shouldn't happen!"),
+            };
+        }
+        let mut after_components = components.split_off(first_closing_bracket + 1);
+        let mut middle_components = components.split_off(last_opening_bracket + 1);
+        middle_components.truncate(middle_components.len() - 1);
+        let bracket_eval = evaluate_no_brackets(middle_components);
+
+        // drop ( from expression we evaluated, then add in next parts
+        components.truncate(components.len() - 1);
+        components.push(bracket_eval);
+        components.append(&mut after_components);
+    }
 }
 
 fn part_1(contents: &str) -> u128 {
@@ -81,6 +140,18 @@ fn part_2(_contents: &str) -> u128 {
 mod tests {
     use super::*;
     use rstest::*;
+
+    #[rstest]
+    #[case(vec![Component::Integer { i: 1 }, Component::Add, Component::Integer { i: 2 }], Component::Integer {i:3})]
+    #[case(vec![Component::Integer { i: 3 }, Component::Multiply, Component::Integer { i: 2 }], Component::Integer {i:6})]
+    #[case(vec![Component::Integer { i: 1 }, Component::Add, Component::Integer { i: 2 }, Component::Multiply, Component::Integer { i: 3 }], Component::Integer {i:9})]
+    #[case(vec![Component::Integer { i: 1 }, Component::Multiply, Component::Integer { i: 2 }, Component::Add, Component::Integer { i: 3 }], Component::Integer {i:5})]
+    fn test_evaluate_no_brackets(
+        #[case] components: Vec<Component>,
+        #[case] expected_output: Component,
+    ) {
+        assert_eq!(evaluate_no_brackets(components), expected_output);
+    }
 
     #[rstest]
     #[case("1 + 2 * 3 + 4 * 5 + 6", 71)]
