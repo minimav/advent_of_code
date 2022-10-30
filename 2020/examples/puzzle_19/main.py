@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 
 def parse_file(file_name: str = "input.txt") -> dict:
@@ -33,35 +33,40 @@ def parse_file(file_name: str = "input.txt") -> dict:
 def evaluate_message(message: str, rules: dict) -> bool:
     """Evaluate rules on a message."""
 
-    def evaluate(message: str, rule) -> Tuple[str, bool]:
+    def evaluate(messages: List[str], rule) -> List[str]:
         """Recursive evaluation of the rules on a message."""
+        valid_messages = [message for message in messages if message]
+        if not valid_messages:
+            # still something to evaluate but message has been read
+            return []
+
+        next_messages = []
         if isinstance(rule, str):
-            if message[0] == rule:
-                return (message[1:], True)
-            else:
-                return (message, False)
+            for message in valid_messages:
+                if message[0] != rule:
+                    continue
+                if len(message) == 1:
+                    raise ValueError
+                else:
+                    next_messages.append(message[1:])
+
         elif isinstance(rule, tuple):
-            message_1, valid_1 = evaluate(message, rule[0])
-            message_2, valid_2 = evaluate(message, rule[1])
-            if valid_1 and valid_2:
-                assert message_1 == message_2
-                return (message_1, valid_1)
-            elif valid_1:
-                return (message_1, valid_1)
-            elif valid_2:
-                return (message_2, valid_2)
-            else:
-                return (message_1, False)
+            next_messages += evaluate(messages, rule[0])
+            next_messages += evaluate(messages, rule[1])
         else:
             for rule_number in rule:
-                message, valid = evaluate(message, rules[rule_number])
-                if not valid:
-                    # sequence is an AND condition, so quit early
-                    return (message, valid)
-            return (message, True)
+                messages = evaluate(messages, rules[rule_number])
+                if not messages:
+                    break
 
-    final_message, valid = evaluate(message, rules["0"])
-    return not final_message and valid
+            next_messages = messages
+        return next_messages
+
+    try:
+        evaluate([message], rules["0"])
+        return False
+    except ValueError:
+        return True
 
 
 def part_1(data: dict) -> int:
@@ -87,6 +92,6 @@ def part_2(data: dict) -> int:
 if __name__ == "__main__":
     data = parse_file(file_name="input.txt")
     answer = part_1(data)
-    print(f"{answer=}")
+    print(f"Part 1 {answer=}")
     answer = part_2(data)
-    print(f"{answer=}")
+    print(f"Part 2 {answer=}")
