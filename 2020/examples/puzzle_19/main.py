@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import Set
+import time
 
 
 def parse_file(file_name: str = "input.txt") -> dict:
@@ -96,8 +97,11 @@ def part_2(data: dict) -> int:
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     data = parse_file(file_name="input.txt")
     answer = part_1(data)
     print(f"Part 1: {answer=}")
     answer = part_2(data)
     print(f"Part 2: {answer=}")
+    end_time = time.time()
+    print(f"Took {end_time - start_time:.3f} seconds")
