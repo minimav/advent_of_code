@@ -14,7 +14,7 @@ impl Default for Tile {
 impl fmt::Display for Tile {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for row in self.0 {
-            write!(f, "{:?}\n", row);
+            write!(f, "{:?}\n", row.iter().cloned().collect::<String>());
         }
         write!(f, "")
     }
@@ -25,7 +25,7 @@ impl Tile {
         let mut tile = [['.'; 10]; 10];
         for (row_index, row) in self.0.iter().enumerate() {
             for (column_index, char) in row.iter().enumerate() {
-                tile[row_index][9 - column_index] = char
+                tile[row_index][9 - column_index] = *char
             }
         }
         Tile(tile)
@@ -35,7 +35,7 @@ impl Tile {
         let mut tile = [['.'; 10]; 10];
         for (row_index, row) in self.0.iter().enumerate() {
             for (column_index, char) in row.iter().enumerate() {
-                tile[9 - row_index][column_index] = char
+                tile[9 - row_index][column_index] = *char
             }
         }
         Tile(tile)
@@ -45,7 +45,7 @@ impl Tile {
         let mut tile = [['.'; 10]; 10];
         for (row_index, row) in self.0.iter().enumerate() {
             for (column_index, char) in row.iter().enumerate() {
-                tile[column_index][row_index] = char
+                tile[column_index][row_index] = *char
             }
         }
         Tile(tile)
@@ -53,6 +53,17 @@ impl Tile {
 
     fn rotate(&self) -> Tile {
         self.flip_diagonal().flip_horizontal()
+    }
+
+    fn variants(&self) -> Vec<Tile> {
+        let mut tiles: Vec<Tile> = Vec::new();
+        tiles.push(*self);
+        tiles.push(self.flip_vertical());
+        tiles.push(self.flip_horizontal());
+        tiles.push(self.rotate());
+        tiles.push(self.rotate().rotate());
+        tiles.push(self.rotate().rotate().rotate());
+        tiles
     }
 
     fn top(&self) -> [char; 10] {
@@ -80,13 +91,6 @@ impl Tile {
     }
 
     fn matches(arr_1: [char; 10], arr_2: [char; 10]) -> bool {
-        println!(
-            "{:?}",
-            arr_1
-                .iter()
-                .zip(arr_2.iter())
-                .collect::<Vec<(&char, &char)>>()
-        );
         arr_1.iter().zip(arr_2.iter()).all(|(a, b)| a == b)
     }
 
@@ -121,7 +125,6 @@ fn parse_tiles(contents: &str) -> HashMap<u32, Tile> {
             current_tile = Tile::default();
             current_row = 0;
         } else if line.is_empty() {
-            println!("{}\n{}", current_tile_number, current_tile);
             tiles.insert(current_tile_number, current_tile);
         } else {
             for (column, char) in line.chars().enumerate() {
@@ -133,8 +136,97 @@ fn parse_tiles(contents: &str) -> HashMap<u32, Tile> {
     tiles
 }
 
+#[derive(Debug, Clone, Copy)]
+struct TileWithNeighbours<'a> {
+    tile: &'a Tile,
+    left: Option<u32>,
+    right: Option<u32>,
+    top: Option<u32>,
+    bottom: Option<u32>,
+}
+
+impl<'a> TileWithNeighbours<'a> {
+    fn init(tile: &'a Tile) -> Self {
+        TileWithNeighbours {
+            tile,
+            left: None,
+            right: None,
+            top: None,
+            bottom: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Arrangement<'a> {
+    tiles: HashMap<&'a u32, TileWithNeighbours<'a>>,
+}
+
+fn create_new_arrangments<'a>(
+    arrangements: Vec<Arrangement<'a>>,
+    key: &'a u32,
+    tile: &'a Tile,
+) -> Vec<Arrangement<'a>> {
+    let mut new_arrangements: Vec<Arrangement> = Vec::new();
+
+    for variant in tile.variants().iter() {
+        for arrangement in arrangements.iter() {
+            for (other_key, other_tile) in arrangement.tiles.iter() {
+                if variant.match_top(*other_tile.tile) {
+                    let mut new_arrangement = arrangement.clone();
+                    new_arrangement.tiles.insert(
+                        key,
+                        TileWithNeighbours {
+                            tile: variant,
+                            top: Some(**other_key),
+                            left: None,
+                            right: None,
+                            bottom: None,
+                        },
+                    );
+                    new_arrangement.tiles.entry(other_key).and_modify(|v| {
+                        v.bottom = Some(*key);
+                    });
+                    new_arrangements.push(new_arrangement);
+                }
+                if variant.match_bottom(*other_tile.tile) {
+                    let mut new_arrangement = arrangement.clone();
+
+                    new_arrangements.push(new_arrangement);
+                }
+                if variant.match_left(*other_tile.tile) {
+                    let mut new_arrangement = arrangement.clone();
+
+                    new_arrangements.push(new_arrangement);
+                }
+                if variant.match_right(*other_tile.tile) {
+                    let mut new_arrangement = arrangement.clone();
+
+                    new_arrangements.push(new_arrangement);
+                }
+            }
+        }
+    }
+
+    new_arrangements
+}
+
 fn part_1(contents: &str) -> u64 {
     let tiles: HashMap<u32, Tile> = parse_tiles(contents);
+
+    let mut arrangements: Vec<Arrangement> = Vec::new();
+    for (key, tile) in tiles.iter() {
+        if arrangements.len() == 0 {
+            let tile_with_neighbours = TileWithNeighbours::init(tile);
+            arrangements.push(Arrangement {
+                tiles: HashMap::from([(key, tile_with_neighbours)]),
+            });
+            continue;
+        }
+        arrangements = create_new_arrangments(arrangements, key, tile);
+    }
+
+    println!("{:?}", arrangements);
     0
 }
 
