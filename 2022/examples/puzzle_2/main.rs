@@ -1,36 +1,99 @@
 use std::time::Instant;
 
+#[derive(PartialEq, Clone)]
+enum Move {
+    ROCK,
+    PAPER,
+    SCISSORS,
+}
+
+#[derive(PartialEq)]
+enum Outcome {
+    WIN,
+    LOSE,
+    DRAW,
+}
+
+trait Points {
+    fn points(&self) -> u64;
+}
+
+impl Points for Move {
+    fn points(&self) -> u64 {
+        match self {
+            Move::ROCK => 1,
+            Move::PAPER => 2,
+            Move::SCISSORS => 3,
+        }
+    }
+}
+
+impl Points for Outcome {
+    fn points(&self) -> u64 {
+        match self {
+            Outcome::WIN => 6,
+            Outcome::LOSE => 0,
+            Outcome::DRAW => 3,
+        }
+    }
+}
+
+impl From<&str> for Move {
+    fn from(s: &str) -> Self {
+        match s {
+            "A" | "X" => Move::ROCK,
+            "B" | "Y" => Move::PAPER,
+            "C" | "Z" => Move::SCISSORS,
+            _ => panic!("Could not convert string to Move"),
+        }
+    }
+}
+
+impl From<&str> for Outcome {
+    fn from(s: &str) -> Self {
+        match s {
+            "X" => Outcome::LOSE,
+            "Y" => Outcome::DRAW,
+            "Z" => Outcome::WIN,
+            _ => panic!("Could not convert string to Outcome"),
+        }
+    }
+}
+
+impl Move {
+    fn compare(&self, other: &Move) -> Outcome {
+        match (self, other) {
+            (Move::ROCK, Move::PAPER) => Outcome::LOSE,
+            (Move::ROCK, Move::SCISSORS) => Outcome::WIN,
+            (Move::PAPER, Move::ROCK) => Outcome::WIN,
+            (Move::PAPER, Move::SCISSORS) => Outcome::LOSE,
+            (Move::SCISSORS, Move::ROCK) => Outcome::LOSE,
+            (Move::SCISSORS, Move::PAPER) => Outcome::WIN,
+            _ => Outcome::DRAW,
+        }
+    }
+
+    fn move_for_outcome(&self, outcome: &Outcome) -> Move {
+        match (self, outcome) {
+            (_, Outcome::DRAW) => self.clone(),
+            (Move::ROCK, Outcome::WIN) => Move::PAPER,
+            (Move::ROCK, Outcome::LOSE) => Move::SCISSORS,
+            (Move::PAPER, Outcome::WIN) => Move::SCISSORS,
+            (Move::PAPER, Outcome::LOSE) => Move::ROCK,
+            (Move::SCISSORS, Outcome::WIN) => Move::ROCK,
+            (Move::SCISSORS, Outcome::LOSE) => Move::PAPER,
+        }
+    }
+}
+
 fn part_1(contents: &str) -> u64 {
     let mut points: u64 = 0;
     for line in contents.lines() {
         let moves = line.split_whitespace().collect::<Vec<&str>>();
-
-        // points for move
-        match moves[1] {
-            "X" => {
-                points += 1;
-            }
-            "Y" => {
-                points += 2;
-            }
-            "Z" => {
-                points += 3;
-            }
-            _ => {}
-        }
-
-        // points for round
-        if (moves[0] == "A" && moves[1] == "Y")
-            || (moves[0] == "B" && moves[1] == "Z")
-            || (moves[0] == "C" && moves[1] == "X")
-        {
-            points += 6;
-        } else if (moves[0] == "A" && moves[1] == "X")
-            || (moves[0] == "B" && moves[1] == "Y")
-            || (moves[0] == "C" && moves[1] == "Z")
-        {
-            points += 3;
-        }
+        let their_move = Move::from(moves[0]);
+        let my_move = Move::from(moves[1]);
+        points += my_move.points();
+        points += my_move.compare(&their_move).points();
     }
     points
 }
@@ -39,56 +102,10 @@ fn part_2(contents: &str) -> u64 {
     let mut points: u64 = 0;
     for line in contents.lines() {
         let moves = line.split_whitespace().collect::<Vec<&str>>();
-
-        // points result
-        match moves[1] {
-            "Y" => {
-                points += 3;
-            }
-            "Z" => {
-                points += 6;
-            }
-            _ => {}
-        }
-
-        // points for move
-        if moves[0] == "A" {
-            // rock
-            if moves[1] == "X" {
-                // scissors to lose
-                points += 3;
-            } else if moves[1] == "Y" {
-                // rock to draw
-                points += 1;
-            } else {
-                // paper to win
-                points += 2;
-            }
-        } else if moves[0] == "B" {
-            // paper
-            if moves[1] == "X" {
-                // rock to lose
-                points += 1;
-            } else if moves[1] == "Y" {
-                // paper to draw
-                points += 2;
-            } else {
-                // scissors to win
-                points += 3;
-            }
-        } else if moves[0] == "C" {
-            // scissors
-            if moves[1] == "X" {
-                // paper to lose
-                points += 2;
-            } else if moves[1] == "Y" {
-                // scissors to draw
-                points += 3;
-            } else {
-                // rock to win
-                points += 1;
-            }
-        }
+        let their_move = Move::from(moves[0]);
+        let outcome = Outcome::from(moves[1]);
+        points += outcome.points();
+        points += their_move.move_for_outcome(&outcome).points();
     }
     points
 }
