@@ -1,11 +1,13 @@
-use std::fs;
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 use std::time::Instant;
 
 fn part_1(contents: &str) -> u32 {
     let mut max_elf: u32 = 0;
     let mut current_elf: u32 = 0;
-    for line in contents.lines() {
-        if line.is_empty() {
+    let mut lines = contents.lines().peekable();
+    while let Some(line) = lines.next() {
+        if lines.peek().is_none() || line.is_empty() {
             if current_elf > max_elf {
                 max_elf = current_elf
             }
@@ -14,35 +16,28 @@ fn part_1(contents: &str) -> u32 {
             current_elf += line.parse::<u32>().unwrap();
         }
     }
-    if current_elf > max_elf {
-        max_elf = current_elf
-    }
     max_elf
 }
 
 fn part_2(contents: &str) -> u32 {
-    let mut max_elves: Vec<u32> = Vec::new();
+    // use Reverse to make min-heap so popping returns the min
+    let mut max_elves = BinaryHeap::with_capacity(3);
     let mut current_elf: u32 = 0;
-    for line in contents.lines() {
-        if line.is_empty() {
+    let mut lines = contents.lines().peekable();
+    while let Some(line) = lines.next() {
+        if lines.peek().is_none() || line.is_empty() {
             if max_elves.len() < 3 {
-                max_elves.push(current_elf);
-                max_elves.sort();
-            } else if max_elves.iter().any(|x| &current_elf > x) {
-                max_elves.drain(0..1);
-                max_elves.push(current_elf);
-                max_elves.sort();
+                max_elves.push(Reverse(current_elf));
+            } else if max_elves.iter().any(|x| current_elf > x.0) {
+                max_elves.pop();
+                max_elves.push(Reverse(current_elf));
             }
             current_elf = 0
         } else {
             current_elf += line.parse::<u32>().unwrap();
         }
     }
-    if max_elves.iter().any(|x| &current_elf > x) {
-        max_elves.drain(0..1);
-        max_elves.push(current_elf);
-    }
-    max_elves.iter().sum()
+    max_elves.iter().map(|x| x.0).sum()
 }
 
 #[cfg(test)]
