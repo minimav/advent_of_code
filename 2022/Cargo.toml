@@ -12,3 +12,6 @@ rstest = "0.15.0"
 
 [[example]]
 name = "puzzle_1"
+
+[[example]]
+name = "puzzle_2"
