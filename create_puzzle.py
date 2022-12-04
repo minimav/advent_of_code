@@ -1,4 +1,4 @@
-import sys
+import argparse
 
 from pathlib import Path
 
@@ -48,22 +48,31 @@ name = "puzzle_{puzzle_number}"
 """
 
 if __name__ == "__main__":
-    try:
-        puzzle_number = int(sys.argv[1])
-    except IndexError:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", type=int, default=None)
+    parser.add_argument("--puzzle_number", type=int, default=None)
+    args = parser.parse_args()
+
+    if args.year is None:
+        args.year = max(
+            int(str(p)) for p in Path(".").iterdir() if str(p).startswith("20")
+        )
+        print(f"No year supplied, using {args.year} based on " "existing folders")
+    if args.puzzle_number is None:
         try:
+            examples_folder = Path(str(args.year)) / "examples"
             max_puzzle_number = max(
-                int(str(p).split("_")[-1]) for p in Path("examples").iterdir()
+                int(str(p).split("_")[-1]) for p in examples_folder.iterdir()
             )
         except ValueError:
             max_puzzle_number = 0
-        puzzle_number = max_puzzle_number + 1
+        args.puzzle_number = max_puzzle_number + 1
         print(
-            f"No puzzle number supplied, using {puzzle_number} based "
+            f"No puzzle number supplied, using {args.puzzle_number} based "
             "on existing folders"
         )
 
-    puzzle_folder = Path(f"examples/puzzle_{puzzle_number}/")
+    puzzle_folder = Path(str(args.year)) / "examples" / f"puzzle_{args.puzzle_number}"
 
     if puzzle_folder.exists():
         raise ValueError(f"Path {puzzle_folder} already exists!")
@@ -76,5 +85,5 @@ if __name__ == "__main__":
         with file_path.open("w", encoding="utf-8") as f:
             f.write(content)
 
-    with open("Cargo.toml", "a") as f:
-        f.write(CARGO_TEMPLATE.format(puzzle_number=puzzle_number))
+    with open(Path(str(args.year)) / "Cargo.toml", "a") as f:
+        f.write(CARGO_TEMPLATE.format(puzzle_number=args.puzzle_number))
