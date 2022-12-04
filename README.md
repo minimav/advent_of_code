@@ -8,6 +8,12 @@ Setup a new puzzle to solve in Rust for an existing year:
 make year=2022 create
 ```
 
+or just the latest year:
+
+```bash
+make create
+```
+
 Run unit tests for a puzzle:
 
 ```bash

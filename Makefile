@@ -1,4 +1,7 @@
 create:
+	python create_puzzle.py
+
+create-specific:
 	python create_puzzle.py --year=$(year)
 
 run:
