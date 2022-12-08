@@ -15,59 +15,82 @@ fn parse_grid(contents: &str) -> Vec<Vec<u32>> {
     grid
 }
 
+enum Direction {
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN,
+}
+
+struct LineOfTrees<'a> {
+    trees: &'a Vec<&'a u32>,
+    row_index: usize,
+    column_index: usize,
+    direction: Direction,
+}
+
+fn num_visible_in_direction(line: &LineOfTrees, visible: &mut HashSet<(usize, usize)>) {
+    // start tree is on the boundary so always visible
+    visible.insert((line.row_index, line.column_index));
+    let mut min = line.trees[0];
+    for (index, tree) in line.trees.iter().skip(1).enumerate() {
+        if tree > &min {
+            min = *tree;
+            match line.direction {
+                Direction::RIGHT => {
+                    visible.insert((line.row_index, line.column_index + index + 1));
+                }
+                Direction::LEFT => {
+                    visible.insert((line.row_index, line.column_index - index - 1));
+                }
+                Direction::DOWN => {
+                    visible.insert((line.row_index + index + 1, line.column_index));
+                }
+                Direction::UP => {
+                    visible.insert((line.row_index - index - 1, line.column_index));
+                }
+            }
+        }
+    }
+}
+
 fn part_1(contents: &str) -> u64 {
     let grid = parse_grid(contents);
     let mut visible: HashSet<(usize, usize)> = HashSet::new();
     for (row_index, row) in grid.iter().enumerate() {
-        // check from left
-        let mut min = row[0];
-        let mut column_index = 1;
-        visible.insert((row_index, 0));
-        while column_index < row.len() {
-            if row[column_index] > min {
-                min = row[column_index];
-                visible.insert((row_index, column_index));
-            }
-            column_index += 1;
-        }
+        let to_right = LineOfTrees {
+            trees: &row.iter().map(|x| x).collect(),
+            row_index: row_index,
+            column_index: 0,
+            direction: Direction::RIGHT,
+        };
+        num_visible_in_direction(&to_right, &mut visible);
 
-        // check from right
-        let mut min = row[row.len() - 1];
-        let mut column_index = row.len() - 2;
-        visible.insert((row_index, row.len() - 1));
-        while column_index > 0 {
-            if row[column_index] > min {
-                min = row[column_index];
-                visible.insert((row_index, column_index));
-            }
-            column_index -= 1;
-        }
+        let to_left = LineOfTrees {
+            trees: &row.iter().rev().collect(),
+            row_index: row_index,
+            column_index: row.len() - 1,
+            direction: Direction::LEFT,
+        };
+        num_visible_in_direction(&to_left, &mut visible);
     }
     // ignore first and last columns as left/right cover them
     for column_index in 1..grid[0].len() - 1 {
-        // check from top
-        let mut min = grid[0][column_index];
-        let mut row_index = 1;
-        visible.insert((0, column_index));
-        while row_index < grid.len() {
-            if grid[row_index][column_index] > min {
-                min = grid[row_index][column_index];
-                visible.insert((row_index, column_index));
-            }
-            row_index += 1;
-        }
+        let to_bottom = LineOfTrees {
+            trees: &grid.iter().map(|x| &x[column_index]).collect(),
+            row_index: 0,
+            column_index: column_index,
+            direction: Direction::DOWN,
+        };
+        num_visible_in_direction(&to_bottom, &mut visible);
 
-        // check from bottom
-        let mut min = grid[grid.len() - 1][column_index];
-        let mut row_index = grid.len() - 2;
-        visible.insert((grid.len() - 1, column_index));
-        while row_index > 0 {
-            if grid[row_index][column_index] > min {
-                min = grid[row_index][column_index];
-                visible.insert((row_index, column_index));
-            }
-            row_index -= 1;
-        }
+        let to_top = LineOfTrees {
+            trees: &grid.iter().rev().map(|x| &x[column_index]).collect(),
+            row_index: grid.len() - 1,
+            column_index: column_index,
+            direction: Direction::UP,
+        };
+        num_visible_in_direction(&to_top, &mut visible);
     }
     visible.len() as u64
 }
@@ -88,13 +111,11 @@ fn part_2(contents: &str) -> u64 {
 
             // check left
             let mut direction_score = 0;
-            let mut direction_max = 0;
             let mut traverse_column_index = column_index - 1;
             while traverse_column_index >= 0 {
                 let next_value = grid[row_index][traverse_column_index];
                 if next_value <= *value {
                     direction_score += 1;
-                    direction_max = next_value;
                     if traverse_column_index == 0 || next_value == *value {
                         break;
                     } else {
@@ -115,13 +136,11 @@ fn part_2(contents: &str) -> u64 {
 
             // check right
             let mut direction_score = 0;
-            let mut direction_max = 0;
             let mut traverse_column_index = column_index + 1;
             while traverse_column_index < row.len() {
                 let next_value = grid[row_index][traverse_column_index];
                 if next_value <= *value {
                     direction_score += 1;
-                    direction_max = next_value;
                     if traverse_column_index == row.len() - 1 || next_value == *value {
                         break;
                     } else {
@@ -142,13 +161,11 @@ fn part_2(contents: &str) -> u64 {
 
             // check bottom
             let mut direction_score = 0;
-            let mut direction_max = 0;
             let mut traverse_row_index = row_index + 1;
             while traverse_row_index < grid.len() {
                 let next_value = grid[traverse_row_index][column_index];
                 if next_value <= *value {
                     direction_score += 1;
-                    direction_max = next_value;
                     if traverse_row_index == grid.len() - 1 || next_value == *value {
                         break;
                     } else {
@@ -169,13 +186,11 @@ fn part_2(contents: &str) -> u64 {
 
             // check down
             let mut direction_score = 0;
-            let mut direction_max = 0;
             let mut traverse_row_index = row_index - 1;
             while traverse_row_index >= 0 {
                 let next_value = grid[traverse_row_index][column_index];
                 if next_value <= *value {
                     direction_score += 1;
-                    direction_max = next_value;
                     if traverse_row_index == 0 || next_value == *value {
                         break;
                     } else {
@@ -229,8 +244,8 @@ fn main() {
     let contents = include_str!("./input.txt");
     let part_1_answer = part_1(contents);
     println!("Answer for part 1 is: {}", part_1_answer);
-    let part_2_answer = part_2(contents);
-    println!("Answer for part 2 is: {}", part_2_answer);
+    //let part_2_answer = part_2(contents);
+    //println!("Answer for part 2 is: {}", part_2_answer);
     let duration = start.elapsed();
     println!("Took {:?} to solve this puzzle", duration);
 }
