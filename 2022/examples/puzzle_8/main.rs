@@ -29,6 +29,7 @@ struct LineOfTrees<'a> {
     direction: Direction,
 }
 
+// Looking into the forest from a specific direction along a line
 fn num_visible_in_direction(line: &LineOfTrees, visible: &mut HashSet<(usize, usize)>) {
     // start tree is on the boundary so always visible
     visible.insert((line.row_index, line.column_index));
@@ -52,6 +53,19 @@ fn num_visible_in_direction(line: &LineOfTrees, visible: &mut HashSet<(usize, us
             }
         }
     }
+}
+
+// Looking from a specific tree in a line in a given direction
+fn num_visible_in_direction_from_tree(line_of_trees: &LineOfTrees) -> u64 {
+    let mut direction_score = 0;
+    let height = &line_of_trees.trees[0];
+    for tree in line_of_trees.trees.iter().skip(1) {
+        direction_score += 1;
+        if tree >= height {
+            break;
+        }
+    }
+    direction_score
 }
 
 fn part_1(contents: &str) -> u64 {
@@ -98,124 +112,46 @@ fn part_1(contents: &str) -> u64 {
 fn part_2(contents: &str) -> u64 {
     let grid = parse_grid(contents);
     let mut best_scenic_score: u64 = 0;
-    for (row_index, row) in grid.iter().enumerate() {
-        if row_index == 0 || row_index == grid.len() - 1 {
-            continue;
-        }
-        for (column_index, value) in row.iter().enumerate() {
-            if column_index == 0 || column_index == row.len() - 1 {
-                continue;
-            }
-
+    for row_index in 1..grid.len() - 1 {
+        for column_index in 1..grid[row_index].len() - 1 {
             let mut scenic_score = 1;
+            let to_right = LineOfTrees {
+                trees: &grid[row_index][column_index..].iter().collect(),
+                row_index: row_index,
+                column_index: column_index,
+                direction: Direction::RIGHT,
+            };
+            scenic_score *= num_visible_in_direction_from_tree(&to_right);
 
-            // check left
-            let mut direction_score = 0;
-            let mut traverse_column_index = column_index - 1;
-            while traverse_column_index >= 0 {
-                let next_value = grid[row_index][traverse_column_index];
-                if next_value <= *value {
-                    direction_score += 1;
-                    if traverse_column_index == 0 || next_value == *value {
-                        break;
-                    } else {
-                        traverse_column_index -= 1;
-                    }
-                } else {
-                    direction_score += 1;
-                    break;
-                }
-            }
-            println!(
-                "{} {:?} left score {}",
-                value,
-                (row_index, column_index),
-                direction_score
-            );
-            scenic_score *= direction_score;
+            let to_left = LineOfTrees {
+                trees: &grid[row_index][0..=column_index].iter().rev().collect(),
+                row_index: row_index,
+                column_index: column_index,
+                direction: Direction::LEFT,
+            };
+            scenic_score *= num_visible_in_direction_from_tree(&to_left);
 
-            // check right
-            let mut direction_score = 0;
-            let mut traverse_column_index = column_index + 1;
-            while traverse_column_index < row.len() {
-                let next_value = grid[row_index][traverse_column_index];
-                if next_value <= *value {
-                    direction_score += 1;
-                    if traverse_column_index == row.len() - 1 || next_value == *value {
-                        break;
-                    } else {
-                        traverse_column_index += 1;
-                    }
-                } else {
-                    direction_score += 1;
-                    break;
-                }
-            }
-            println!(
-                "{} {:?} right score {}",
-                value,
-                (row_index, column_index),
-                direction_score
-            );
-            scenic_score *= direction_score;
+            let to_bottom = LineOfTrees {
+                trees: &grid[row_index..].iter().map(|x| &x[column_index]).collect(),
+                row_index: row_index,
+                column_index: column_index,
+                direction: Direction::DOWN,
+            };
+            scenic_score *= num_visible_in_direction_from_tree(&to_bottom);
 
-            // check bottom
-            let mut direction_score = 0;
-            let mut traverse_row_index = row_index + 1;
-            while traverse_row_index < grid.len() {
-                let next_value = grid[traverse_row_index][column_index];
-                if next_value <= *value {
-                    direction_score += 1;
-                    if traverse_row_index == grid.len() - 1 || next_value == *value {
-                        break;
-                    } else {
-                        traverse_row_index += 1;
-                    }
-                } else {
-                    direction_score += 1;
-                    break;
-                }
-            }
-            println!(
-                "{} {:?} bottom score {}",
-                value,
-                (row_index, column_index),
-                direction_score
-            );
-            scenic_score *= direction_score;
-
-            // check down
-            let mut direction_score = 0;
-            let mut traverse_row_index = row_index - 1;
-            while traverse_row_index >= 0 {
-                let next_value = grid[traverse_row_index][column_index];
-                if next_value <= *value {
-                    direction_score += 1;
-                    if traverse_row_index == 0 || next_value == *value {
-                        break;
-                    } else {
-                        traverse_row_index -= 1;
-                    }
-                } else {
-                    direction_score += 1;
-                    break;
-                }
-            }
-            println!(
-                "{} {:?} up score {}",
-                value,
-                (row_index, column_index),
-                direction_score
-            );
-            scenic_score *= direction_score;
+            let to_top = LineOfTrees {
+                trees: &grid[0..=row_index]
+                    .iter()
+                    .map(|x| &x[column_index])
+                    .rev()
+                    .collect(),
+                row_index: row_index,
+                column_index: column_index,
+                direction: Direction::UP,
+            };
+            scenic_score *= num_visible_in_direction_from_tree(&to_top);
 
             if scenic_score > best_scenic_score {
-                println!(
-                    "New best {}, {:?}: {}",
-                    value,
-                    (row_index, column_index),
-                    scenic_score
-                );
                 best_scenic_score = scenic_score;
             }
         }
@@ -244,8 +180,8 @@ fn main() {
     let contents = include_str!("./input.txt");
     let part_1_answer = part_1(contents);
     println!("Answer for part 1 is: {}", part_1_answer);
-    //let part_2_answer = part_2(contents);
-    //println!("Answer for part 2 is: {}", part_2_answer);
+    let part_2_answer = part_2(contents);
+    println!("Answer for part 2 is: {}", part_2_answer);
     let duration = start.elapsed();
     println!("Took {:?} to solve this puzzle", duration);
 }
