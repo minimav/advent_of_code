@@ -129,11 +129,7 @@ fn process_monkeys(contents: &str, num_rounds: u32, divide_by_factor: u128) -> u
     let num_monkeys = monkey_items.len();
 
     // modulus by this to prevent overflows
-    let max_mod = monkeys
-        .iter()
-        .map(|(_, x)| x.test_modulo)
-        .reduce(|a, b| a * b)
-        .unwrap();
+    let max_modulus: u128 = monkeys.iter().map(|(_, x)| x.test_modulo).product();
 
     for _ in 0..num_rounds {
         for monkey_index in 0..num_monkeys {
@@ -161,7 +157,7 @@ fn process_monkeys(contents: &str, num_rounds: u32, divide_by_factor: u128) -> u
                 match monkey_items.get_mut(&monkey_index) {
                     Some(items) => {
                         let item = items.pop().unwrap();
-                        let new_item = monkey.operation.apply(item, divide_by_factor) % max_mod;
+                        let new_item = monkey.operation.apply(item, divide_by_factor) % max_modulus;
                         let new_monkey_index = monkey.apply_test(new_item);
                         move_queue.push((new_monkey_index, new_item));
                     }
