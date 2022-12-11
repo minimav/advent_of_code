@@ -1,10 +1,15 @@
+use parse_display::{Display, FromStr};
 use std::collections::HashMap;
 use std::time::Instant;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, Display, FromStr)]
+
 enum Operation {
+    #[display("Operation: new = old * old")]
     SQUARE,
+    #[display("Operation: new = old + {0}")]
     ADD(u128),
+    #[display("Operation: new = old * {0}")]
     MULTIPLY(u128),
 }
 
@@ -22,74 +27,98 @@ impl Operation {
 #[derive(Debug)]
 struct Monkey {
     operation: Operation,
-    test: (u128, usize, usize),
+    test_modulo: u128,
+    test_true: usize,
+    test_false: usize,
 }
 
-fn apply_test(test: (u128, usize, usize), item: u128) -> usize {
-    if item % test.0 == 0 {
-        test.1
-    } else {
-        test.2
+impl Monkey {
+    fn apply_test(&self, item: u128) -> usize {
+        if item % self.test_modulo == 0 {
+            self.test_true
+        } else {
+            self.test_false
+        }
     }
 }
 
-fn parse_monkeys(contents: &str) -> (HashMap<usize, Monkey>, HashMap<usize, Vec<u128>>) {
-    let mut monkey_items: HashMap<usize, Vec<u128>> = HashMap::new();
+#[derive(FromStr, Debug, PartialEq)]
+#[display("  Starting items: {items}")]
+#[from_str(new = Self::new(items))]
+struct Items {
+    items: Vec<u128>,
+}
+
+impl Items {
+    fn new(s: String) -> Self {
+        Items {
+            items: s
+                .split(", ")
+                .collect::<Vec<&str>>()
+                .iter()
+                .map(|x| x.parse::<u128>().unwrap())
+                .collect(),
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    fn pop(&mut self) -> Option<u128> {
+        self.items.pop()
+    }
+
+    fn push(&mut self, item: u128) {
+        self.items.push(item);
+    }
+}
+
+fn parse_last<T: std::str::FromStr>(line: &str) -> T
+where
+    <T as std::str::FromStr>::Err: std::fmt::Debug,
+{
+    let components = line.split_whitespace().collect::<Vec<&str>>();
+    components.last().unwrap().parse::<T>().unwrap()
+}
+
+fn parse_monkeys(contents: &str) -> (HashMap<usize, Monkey>, HashMap<usize, Items>) {
+    let mut monkey_items: HashMap<usize, Items> = HashMap::new();
     let mut monkeys: HashMap<usize, Monkey> = HashMap::new();
 
     // properties of a monkey that we'll update as we parse
     let mut monkey_index: usize = 0;
     let mut operation: Operation = Operation::SQUARE;
-    let mut test_mod: u128 = 0;
+    let mut test_modulo: u128 = 0;
     let mut test_true: usize = 0;
     let mut test_false: usize = 0;
 
     let mut lines = contents.lines().peekable();
     while let Some(line) = lines.next() {
+        if line.contains("Monkey") {
+            monkey_index = parse_last(&line.replace(":", ""));
+        } else if line.contains("Starting") {
+            let items = String::from(line).parse().unwrap();
+            monkey_items.insert(monkey_index, items);
+        } else if line.contains("Operation") {
+            operation = line.trim().parse().unwrap();
+        } else if line.contains("Test") {
+            test_modulo = parse_last(line);
+        } else if line.contains("true") {
+            test_true = parse_last(line);
+        } else if line.contains("false") {
+            test_false = parse_last(line);
+        }
         if lines.peek().is_none() || line.is_empty() {
             let monkey = Monkey {
                 operation,
-                test: (test_mod, test_true, test_false),
+                test_modulo,
+                test_true,
+                test_false,
             };
             monkeys.insert(monkey_index, monkey);
-        } else if line.contains("Monkey") {
-            let cleaned_line = line.replace(":", "");
-            let components = cleaned_line.split_whitespace().collect::<Vec<&str>>();
-            monkey_index = components[1].parse::<usize>().unwrap();
-        } else if line.contains("Starting") {
-            let cleaned_line = line.replace(" ", "");
-            let components = cleaned_line.split(":").collect::<Vec<&str>>();
-            let items = components[1]
-                .split(",")
-                .collect::<Vec<&str>>()
-                .iter()
-                .map(|x| x.parse::<u128>().unwrap())
-                .collect();
-            monkey_items.insert(monkey_index, items);
-        } else if line.contains("Operation") {
-            if line.contains("* old") {
-                operation = Operation::SQUARE
-            } else if line.contains("*") {
-                let components = line.split_whitespace().collect::<Vec<&str>>();
-                let value = components.last().unwrap().parse::<u128>().unwrap();
-                operation = Operation::MULTIPLY(value)
-            } else if line.contains("+") {
-                let components = line.split_whitespace().collect::<Vec<&str>>();
-                let value = components.last().unwrap().parse::<u128>().unwrap();
-                operation = Operation::ADD(value)
-            }
-        } else if line.contains("Test") {
-            let components = line.split_whitespace().collect::<Vec<&str>>();
-            test_mod = components.last().unwrap().parse::<u128>().unwrap();
-        } else if line.contains("true") {
-            let components = line.split_whitespace().collect::<Vec<&str>>();
-            test_true = components.last().unwrap().parse::<usize>().unwrap();
-        } else if line.contains("false") {
-            let components = line.split_whitespace().collect::<Vec<&str>>();
-            test_false = components.last().unwrap().parse::<usize>().unwrap();
         }
     }
-
     (monkeys, monkey_items)
 }
 
@@ -102,7 +131,7 @@ fn process_monkeys(contents: &str, num_rounds: u32, divide_by_factor: u128) -> u
     // modulus by this to prevent overflows
     let max_mod = monkeys
         .iter()
-        .map(|(_, x)| x.test.0)
+        .map(|(_, x)| x.test_modulo)
         .reduce(|a, b| a * b)
         .unwrap();
 
@@ -133,7 +162,7 @@ fn process_monkeys(contents: &str, num_rounds: u32, divide_by_factor: u128) -> u
                     Some(items) => {
                         let item = items.pop().unwrap();
                         let new_item = monkey.operation.apply(item, divide_by_factor) % max_mod;
-                        let new_monkey_index = apply_test(monkey.test, new_item);
+                        let new_monkey_index = monkey.apply_test(new_item);
                         move_queue.push((new_monkey_index, new_item));
                     }
                     _ => {}
