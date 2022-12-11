@@ -1,5 +1,6 @@
 from collections import defaultdict
 from functools import reduce
+import time
 
 
 def parse_monkeys(lines: str) -> dict:
@@ -84,6 +85,7 @@ def process_monkeys(monkeys: dict, num_rounds: int = 20, divide_by_3: bool = Fal
 
 if __name__ == "__main__":
     for file_name in ("example.txt", "input.txt"):
+        start_time = time.time()
         with open(file_name) as f:
             lines = [l.rstrip("\n") for l in f.readlines()]
 
@@ -96,3 +98,4 @@ if __name__ == "__main__":
         print(f"For {file_name}:")
         print(f"Part 1 answer: {part_1_answer}")
         print(f"Part 2 answer: {part_2_answer}")
+        print(f"Took {time.time() - start_time:.5f} seconds")
