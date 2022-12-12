@@ -43,3 +43,6 @@ name = "puzzle_10"
 
 [[example]]
 name = "puzzle_11"
+
+[[example]]
+name = "puzzle_12"
