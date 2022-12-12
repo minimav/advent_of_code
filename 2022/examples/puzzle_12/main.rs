@@ -66,6 +66,18 @@ fn parse(contents: &str) -> ElevationsData {
     }
 }
 
+fn add_move_state(
+    new_state: TraversalState,
+    elevations_data: &ElevationsData,
+    current_elevation: &usize,
+    next_current_states: &mut HashSet<TraversalState>,
+) {
+    let new_elevation = elevations_data.elevations.get(&new_state.location).unwrap();
+    if **new_elevation <= *current_elevation + 1 {
+        next_current_states.insert(new_state);
+    }
+}
+
 fn shortest_path(elevations_data: ElevationsData, start_locations: Vec<Location>) -> u64 {
     let mut fewest_steps = u64::MAX;
 
@@ -83,92 +95,101 @@ fn shortest_path(elevations_data: ElevationsData, start_locations: Vec<Location>
         .unwrap();
 
     for start_location in start_locations.iter() {
-        let mut current_positions: HashSet<TraversalState> = HashSet::from_iter([TraversalState {
+        let mut current_states: HashSet<TraversalState> = HashSet::from_iter([TraversalState {
             location: *start_location,
             num_steps: 0,
         }]);
         let mut fastest_steps: HashMap<Location, u64> = HashMap::new();
         loop {
-            let mut next_current_positions: HashSet<TraversalState> = HashSet::new();
-            for position in current_positions.iter() {
-                if &position.num_steps > fastest_steps.entry(position.location).or_insert(u64::MAX)
-                {
+            let mut next_current_states: HashSet<TraversalState> = HashSet::new();
+            for state in current_states.iter() {
+                if &state.num_steps > fastest_steps.entry(state.location).or_insert(u64::MAX) {
                     continue;
                 }
                 fastest_steps
-                    .entry(position.location)
-                    .and_modify(|e| *e = position.num_steps)
-                    .or_insert(position.num_steps);
+                    .entry(state.location)
+                    .and_modify(|e| *e = state.num_steps)
+                    .or_insert(state.num_steps);
 
-                let elevation = elevations_data.elevations.get(&position.location).unwrap();
+                let current_elevation = elevations_data.elevations.get(&state.location).unwrap();
 
                 // left
-                if position.location.x > 0 {
+                if state.location.x > 0 {
                     let left = TraversalState {
                         location: Location {
-                            x: position.location.x - 1,
-                            y: position.location.y,
+                            x: state.location.x - 1,
+                            y: state.location.y,
                         },
-                        num_steps: position.num_steps + 1,
+                        num_steps: state.num_steps + 1,
                     };
-                    let left_elevation = elevations_data.elevations.get(&left.location).unwrap();
-                    if **left_elevation <= *elevation + 1 {
-                        next_current_positions.insert(left);
-                    }
+                    add_move_state(
+                        left,
+                        &elevations_data,
+                        current_elevation,
+                        &mut next_current_states,
+                    );
                 }
 
                 // right
-                if position.location.x < max_x_index {
+                if state.location.x < max_x_index {
                     let right = TraversalState {
                         location: Location {
-                            x: position.location.x + 1,
-                            y: position.location.y,
+                            x: state.location.x + 1,
+                            y: state.location.y,
                         },
-                        num_steps: position.num_steps + 1,
+                        num_steps: state.num_steps + 1,
                     };
-                    let right_elevation = elevations_data.elevations.get(&right.location).unwrap();
-                    if **right_elevation <= *elevation + 1 {
-                        next_current_positions.insert(right);
-                    }
+                    add_move_state(
+                        right,
+                        &elevations_data,
+                        current_elevation,
+                        &mut next_current_states,
+                    );
                 }
 
                 // up
-                if position.location.y > 0 {
+                if state.location.y > 0 {
                     let up = TraversalState {
                         location: Location {
-                            x: position.location.x,
-                            y: position.location.y - 1,
+                            x: state.location.x,
+                            y: state.location.y - 1,
                         },
-                        num_steps: position.num_steps + 1,
+                        num_steps: state.num_steps + 1,
                     };
-                    let up_elevation = elevations_data.elevations.get(&up.location).unwrap();
-                    if **up_elevation <= *elevation + 1 {
-                        next_current_positions.insert(up);
-                    }
+                    add_move_state(
+                        up,
+                        &elevations_data,
+                        current_elevation,
+                        &mut next_current_states,
+                    );
                 }
 
                 // down
-                if position.location.y < max_y_index {
+                if state.location.y < max_y_index {
                     let down = TraversalState {
                         location: Location {
-                            x: position.location.x,
-                            y: position.location.y + 1,
+                            x: state.location.x,
+                            y: state.location.y + 1,
                         },
-                        num_steps: position.num_steps + 1,
+                        num_steps: state.num_steps + 1,
                     };
-                    let down_elevation = elevations_data.elevations.get(&down.location).unwrap();
-                    if **down_elevation <= *elevation + 1 {
-                        next_current_positions.insert(down);
-                    }
+                    add_move_state(
+                        down,
+                        &elevations_data,
+                        current_elevation,
+                        &mut next_current_states,
+                    );
                 }
             }
 
-            if next_current_positions.len() == 0 {
+            if next_current_states.len() == 0 {
                 break;
             }
 
-            current_positions = next_current_positions;
+            current_states = next_current_states;
         }
+        // get quickest route from current start point
+        // update best overall if it is the quickest
         match fastest_steps.get(&elevations_data.end_location) {
             Some(steps) => {
                 if steps < &fewest_steps {
@@ -195,7 +216,6 @@ fn part_2(contents: &str) -> u64 {
         .filter(|(_, v)| ***v == 0)
         .map(|(k, _)| k.clone())
         .collect::<Vec<Location>>();
-
     shortest_path(elevations_data, start_locations)
 }
 
