@@ -8,6 +8,7 @@ itertools = "0.10.2"
 lazy_static = "1.4.0"
 regex = "1.6.0"
 parse-display = "0.7.0"
+serde_json = "1.0.89"
 
 [dev-dependencies]
 rstest = "0.15.0"
@@ -46,3 +47,12 @@ name = "puzzle_11"
 
 [[example]]
 name = "puzzle_12"
+
+[[example]]
+name = "puzzle_13"
+
+[[example]]
+name = "puzzle_14"
+
+[[example]]
+name = "puzzle_15"

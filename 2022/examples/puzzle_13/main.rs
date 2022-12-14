@@ -1,8 +1,9 @@
 use itertools::{EitherOrBoth::*, Itertools};
 use serde_json::{json, Value};
+use std::cmp::Ordering;
 use std::time::Instant;
 
-fn compare(left: &Value, right: &Value) -> i8 {
+fn compare(left: &Value, right: &Value) -> Ordering {
     for pair in left
         .as_array()
         .unwrap()
@@ -15,26 +16,23 @@ fn compare(left: &Value, right: &Value) -> i8 {
                     let left_num = l.as_u64();
                     let right_num = r.as_u64();
                     if left_num < right_num {
-                        return -1;
+                        return Ordering::Less;
                     } else if left_num > right_num {
-                        return 1;
+                        return Ordering::Greater;
                     }
                 }
                 (Value::Number(l), r) => return compare(&json!([l]), r),
                 (l, Value::Number(r)) => return compare(l, &json!([r])),
-                _ => {
-                    let cmp = compare(left_part, right_part);
-                    if cmp == 0 {
-                        continue;
-                    }
-                    return cmp;
-                }
+                _ => match compare(left_part, right_part) {
+                    Ordering::Equal => continue,
+                    cmp => return cmp,
+                },
             },
-            Left(l) => return 1,
-            Right(r) => return -1,
+            Left(l) => return Ordering::Greater,
+            Right(r) => return Ordering::Less,
         }
     }
-    0
+    Ordering::Equal
 }
 
 fn part_1(contents: &str) -> usize {
@@ -51,15 +49,65 @@ fn part_1(contents: &str) -> usize {
 
         let left = serde_json::from_str(left_raw).unwrap();
         let right = serde_json::from_str(right_raw).unwrap();
-        if compare(&left, &right) == -1 {
-            answer += index + 1;
+        match compare(&left, &right) {
+            Ordering::Less => {
+                answer += index + 1;
+            }
+            _ => {}
         }
     }
     answer
 }
 
+#[derive(Eq, Clone)]
+struct Packet(Value);
+
+impl Ord for Packet {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        compare(&self.0, &other.0)
+    }
+}
+
+impl PartialOrd for Packet {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Packet {
+    fn eq(&self, other: &Self) -> bool {
+        compare(&self.0, &other.0) == Ordering::Equal
+    }
+}
+
 fn part_2(contents: &str) -> usize {
-    0
+    let mut packets: Vec<Packet> = Vec::new();
+    let index_packet_1 = Packet(json!([[2]]));
+    let index_packet_2 = Packet(json!([[6]]));
+    packets.push(index_packet_1);
+    packets.push(index_packet_2);
+
+    for data in contents.split("\n\n").collect::<Vec<&str>>().iter() {
+        let lines = data.lines().collect::<Vec<&str>>();
+        let left_raw = lines[0];
+        let right_raw = lines[1];
+
+        let left = serde_json::from_str(left_raw).unwrap();
+        let right = serde_json::from_str(right_raw).unwrap();
+        packets.push(Packet(left));
+        packets.push(Packet(right));
+    }
+
+    packets.sort();
+    let mut answer = 1;
+    let index_packet_1 = Packet(json!([[2]]));
+    let index_packet_2 = Packet(json!([[6]]));
+    for (index, packet) in packets.iter().enumerate() {
+        if packet == &index_packet_1 || packet == &index_packet_2 {
+            answer *= index + 1
+        }
+    }
+    answer
 }
 
 #[cfg(test)]
@@ -88,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(include_str!("./example.txt")), 1);
+        assert_eq!(part_2(include_str!("./example.txt")), 140);
     }
 }
 
