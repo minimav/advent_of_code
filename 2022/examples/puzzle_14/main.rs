@@ -17,7 +17,31 @@ impl From<&str> for Point {
     }
 }
 
-fn part_1(contents: &str) -> u64 {
+struct Bounds {
+    min_x: u32,
+    max_x: u32,
+    min_y: u32,
+    max_y: u32,
+}
+
+impl From<&HashSet<Point>> for Bounds {
+    fn from(filled_squares: &HashSet<Point>) -> Self {
+        Bounds {
+            max_x: filled_squares.iter().map(|p| p.x).max().unwrap(),
+            min_x: filled_squares.iter().map(|p| p.x).min().unwrap(),
+            max_y: filled_squares.iter().map(|p| p.y).max().unwrap(),
+            min_y: filled_squares.iter().map(|p| p.y).min().unwrap(),
+        }
+    }
+}
+
+impl Bounds {
+    fn check_out_of_bounds(&self, point: Point) -> bool {
+        point.x > self.max_x || point.x < self.min_x || point.y >= self.max_y
+    }
+}
+
+fn parse(contents: &str) -> HashSet<Point> {
     let mut rocks: Vec<Vec<Point>> = Vec::new();
     let mut filled_squares: HashSet<Point> = HashSet::new();
     for line in contents.lines() {
@@ -34,199 +58,121 @@ fn part_1(contents: &str) -> u64 {
             let start = pair[0];
             let end = pair[1];
             if start.x == end.x && start.y < end.y {
-                // vertical line
+                // vertical line, down
                 for y in start.y..=end.y {
                     filled_squares.insert(Point { x: start.x, y });
                 }
             } else if start.x == end.x && start.y > end.y {
-                // vertical line
+                // vertical line, up
                 for y in end.y..=start.y {
                     filled_squares.insert(Point { x: start.x, y });
                 }
             } else if start.x < end.x {
-                // horizontal line
+                // horizontal line, right
                 for x in start.x..=end.x {
                     filled_squares.insert(Point { x, y: start.y });
                 }
             } else {
-                // horizontal line
+                // horizontal line, left
                 for x in end.x..=start.x {
                     filled_squares.insert(Point { x, y: start.y });
                 }
             }
         }
     }
+    filled_squares
+}
 
-    let max_x = rocks.iter().fold(0, |max, r| {
-        let line_max = r.iter().map(|l| l.x).max().unwrap();
-        if line_max > max {
-            line_max
-        } else {
-            max
-        }
-    });
-    let max_y = rocks.iter().fold(0, |max, r| {
-        let line_max = r.iter().map(|l| l.y).max().unwrap();
-        if line_max > max {
-            line_max
-        } else {
-            max
-        }
-    });
-    let min_x = rocks.iter().fold(u32::MAX, |min, r| {
-        let line_min = r.iter().map(|l| l.x).min().unwrap();
-        if line_min < min {
-            line_min
-        } else {
-            min
-        }
-    });
-    let min_y = rocks.iter().fold(u32::MAX, |min, r| {
-        let line_min = r.iter().map(|l| l.y).min().unwrap();
-        if line_min < min {
-            line_min
-        } else {
-            min
-        }
-    });
+fn part_1(contents: &str) -> u64 {
+    let mut filled_squares = parse(contents);
+    let bounds = Bounds::from(&filled_squares);
 
     let mut num_sand_particles: u64 = 0;
     'outer: loop {
         let mut sand = Point { x: 500, y: 0 };
         'inner: loop {
-            // check out of bounds
-            if sand.x > max_x || sand.x < min_x || sand.y >= max_y {
+            if bounds.check_out_of_bounds(sand) {
                 break 'outer;
             }
+
             let below = Point {
                 x: sand.x,
                 y: sand.y + 1,
             };
+            if !filled_squares.contains(&below) {
+                sand = below;
+                continue;
+            }
             let diag_left = Point {
                 x: sand.x - 1,
                 y: sand.y + 1,
             };
+
+            if !filled_squares.contains(&diag_left) {
+                sand = diag_left;
+                continue;
+            }
+
             let diag_right = Point {
                 x: sand.x + 1,
                 y: sand.y + 1,
             };
-            if !filled_squares.contains(&below) {
-                sand = below;
-            } else if !filled_squares.contains(&diag_left) {
-                sand = diag_left;
-            } else if !filled_squares.contains(&diag_right) {
+            if !filled_squares.contains(&diag_right) {
                 sand = diag_right;
-            } else {
-                filled_squares.insert(sand);
-                num_sand_particles += 1;
-                break 'inner;
+                continue;
             }
+
+            filled_squares.insert(sand);
+            num_sand_particles += 1;
+            break 'inner;
         }
     }
     num_sand_particles
 }
 
 fn part_2(contents: &str) -> u64 {
-    let mut rocks: Vec<Vec<Point>> = Vec::new();
-    let mut filled_squares: HashSet<Point> = HashSet::new();
-    for line in contents.lines() {
-        let rock_line: Vec<Point> = line
-            .replace(" ", "")
-            .split("->")
-            .map(|x| Point::from(x))
-            .collect::<Vec<_>>();
-        rocks.push(rock_line)
-    }
-
-    for line in rocks.iter() {
-        for pair in line.windows(2) {
-            let start = pair[0];
-            let end = pair[1];
-            if start.x == end.x && start.y < end.y {
-                // vertical line
-                for y in start.y..=end.y {
-                    filled_squares.insert(Point { x: start.x, y });
-                }
-            } else if start.x == end.x && start.y > end.y {
-                // vertical line
-                for y in end.y..=start.y {
-                    filled_squares.insert(Point { x: start.x, y });
-                }
-            } else if start.x < end.x {
-                // horizontal line
-                for x in start.x..=end.x {
-                    filled_squares.insert(Point { x, y: start.y });
-                }
-            } else {
-                // horizontal line
-                for x in end.x..=start.x {
-                    filled_squares.insert(Point { x, y: start.y });
-                }
-            }
-        }
-    }
-
-    let max_x = rocks.iter().fold(0, |max, r| {
-        let line_max = r.iter().map(|l| l.x).max().unwrap();
-        if line_max > max {
-            line_max
-        } else {
-            max
-        }
-    });
-    let max_y = rocks.iter().fold(0, |max, r| {
-        let line_max = r.iter().map(|l| l.y).max().unwrap();
-        if line_max > max {
-            line_max
-        } else {
-            max
-        }
-    });
-    let min_x = rocks.iter().fold(u32::MAX, |min, r| {
-        let line_min = r.iter().map(|l| l.x).min().unwrap();
-        if line_min < min {
-            line_min
-        } else {
-            min
-        }
-    });
-    let min_y = rocks.iter().fold(u32::MAX, |min, r| {
-        let line_min = r.iter().map(|l| l.y).min().unwrap();
-        if line_min < min {
-            line_min
-        } else {
-            min
-        }
-    });
-    let floor_y = max_y + 2;
+    let mut filled_squares = parse(contents);
+    let bounds = Bounds::from(&filled_squares);
+    let floor_y = bounds.max_y + 2;
 
     let mut num_sand_particles: u64 = 0;
     'outer: loop {
         let mut sand = Point { x: 500, y: 0 };
         'inner: loop {
-            let below = Point {
-                x: sand.x,
-                y: sand.y + 1,
-            };
-            let diag_left = Point {
-                x: sand.x - 1,
-                y: sand.y + 1,
-            };
-            let diag_right = Point {
-                x: sand.x + 1,
-                y: sand.y + 1,
-            };
             if sand.y + 1 == floor_y {
                 filled_squares.insert(sand);
                 num_sand_particles += 1;
                 break 'inner;
-            } else if !filled_squares.contains(&below) {
+            }
+
+            let below = Point {
+                x: sand.x,
+                y: sand.y + 1,
+            };
+            if !filled_squares.contains(&below) {
                 sand = below;
-            } else if !filled_squares.contains(&diag_left) {
+                continue;
+            }
+
+            let diag_left = Point {
+                x: sand.x - 1,
+                y: sand.y + 1,
+            };
+            if !filled_squares.contains(&diag_left) {
                 sand = diag_left;
-            } else if !filled_squares.contains(&diag_right) {
+                continue;
+            }
+
+            let diag_right = Point {
+                x: sand.x + 1,
+                y: sand.y + 1,
+            };
+            if !filled_squares.contains(&diag_right) {
                 sand = diag_right;
-            } else if sand.x == 500 && sand.y == 0 {
+                continue;
+            }
+
+            if sand.x == 500 && sand.y == 0 {
                 num_sand_particles += 1;
                 break 'outer;
             } else {
