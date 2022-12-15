@@ -1,6 +1,6 @@
 use parse_display::{Display, FromStr};
+use std::cmp::{max, min};
 use std::collections::HashSet;
-use std::thread::current;
 use std::{str::FromStr, time::Instant};
 
 #[derive(Clone, Copy, Debug, Display, FromStr)]
@@ -50,13 +50,10 @@ fn part_1(contents: &str, row_index: i128) -> i128 {
         }
         // no equal distances!
         let max_x_diff = (distance - y_diff).abs();
-
-        println!("{sensor:?} {beacon:?} {distance} {max_x_diff}");
         not_possible_in_row.push((sensor.x - max_x_diff, sensor.x + max_x_diff))
     }
 
     not_possible_in_row.sort();
-    println!("{:?}", not_possible_in_row);
 
     // merge ranges
     let mut merged_not_possible_in_row: Vec<(i128, i128)> = Vec::new();
@@ -74,8 +71,6 @@ fn part_1(contents: &str, row_index: i128) -> i128 {
         }
     }
     merged_not_possible_in_row.push(current_range);
-    println!("{:?}", beacon_xs);
-    println!("{:?}", merged_not_possible_in_row);
 
     // remove beacons from ranges
     let mut split_not_possible_in_row: Vec<(i128, i128)> = Vec::new();
@@ -85,7 +80,6 @@ fn part_1(contents: &str, row_index: i128) -> i128 {
             .filter(|x| range.0 <= **x && **x <= range.1)
             .collect::<Vec<_>>();
         if beacons_in_range.len() == 0 {
-            println!("{range:?}");
             split_not_possible_in_row.push(*range);
             continue;
         }
@@ -111,27 +105,68 @@ fn part_1(contents: &str, row_index: i128) -> i128 {
             }
         }
     }
-    println!("{:?}", split_not_possible_in_row);
 
     let mut answer = 0;
-    let mut current_range = split_not_possible_in_row[0];
-    for next_range in split_not_possible_in_row.iter().skip(1) {
-        if current_range.1 < next_range.0 {
-            // no overlap with next range, includes everything inclusively
-            answer += current_range.1 - current_range.0 + 1;
-            current_range = *next_range;
-        } else if current_range.1 < next_range.1 {
-            current_range = (current_range.0, next_range.1);
-        } else {
-            // (1, 3) w/ (2, 2) => (1, 3) case
-            continue;
-        }
+    for range in split_not_possible_in_row.iter() {
+        answer += range.1 - range.0 + 1;
     }
-    answer += current_range.1 - current_range.0 + 1;
     answer
 }
 
-fn part_2(contents: &str) -> u64 {
+fn part_2(contents: &str) -> i128 {
+    let min_x = 0;
+    let max_x = 4_000_000;
+    let mut sensor_data: Vec<(Sensor, i128)> = Vec::new();
+    for line in contents.lines() {
+        let components = line.split(": ").collect::<Vec<&str>>();
+        let sensor = Sensor::from_str(components[0]).unwrap();
+        let beacon = Beacon::from_str(components[1]).unwrap();
+        let distance = sensor.manhattan_distance(beacon);
+        sensor_data.push((sensor, distance))
+    }
+    for row_index in min_x..=max_x {
+        let mut not_possible_in_row: Vec<(i128, i128)> = Vec::new();
+        for (sensor, distance) in sensor_data.iter() {
+            let y_diff = (sensor.y - row_index).abs();
+
+            // doesn't stop anything on row being a beacon
+            if distance < &y_diff {
+                continue;
+            }
+            // no equal distances!
+            let max_x_diff = (distance - y_diff).abs();
+            not_possible_in_row.push((
+                max(min_x, sensor.x - max_x_diff),
+                min(max_x, sensor.x + max_x_diff),
+            ))
+        }
+
+        not_possible_in_row.sort();
+
+        // merge ranges
+        let mut merged_not_possible_in_row: Vec<(i128, i128)> = Vec::new();
+        let mut current_range = not_possible_in_row[0];
+        for next_range in not_possible_in_row.iter().skip(1) {
+            if current_range.1 < next_range.0 {
+                // no overlap with next range, includes everything inclusively
+                merged_not_possible_in_row.push(current_range);
+                current_range = *next_range;
+            } else if current_range.1 < next_range.1 {
+                current_range = (current_range.0, next_range.1);
+            } else {
+                // (1, 3) w/ (2, 2) => (1, 3) case
+                continue;
+            }
+        }
+        merged_not_possible_in_row.push(current_range);
+
+        // check if beacon can be on this row
+        // if on row, merging should not make one continuous range
+        if merged_not_possible_in_row.len() > 1 {
+            let x = merged_not_possible_in_row[0].1 + 1;
+            return tuning_frequency(x, row_index);
+        }
+    }
     0
 }
 
