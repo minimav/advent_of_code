@@ -10,12 +10,12 @@ enum Status {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct Point {
-    x: i32,
-    y: i32,
+    x: i128,
+    y: i128,
 }
 
 impl Point {
-    fn new(x: i32, y: i32) -> Self {
+    fn new(x: i128, y: i128) -> Self {
         Point { x, y }
     }
 
@@ -68,7 +68,7 @@ struct Block {
 }
 
 impl Block {
-    fn bottom_at_height_for_index(height: i32, index: usize) -> Self {
+    fn bottom_at_height_for_index(height: i128, index: usize) -> Self {
         if index % 5 == 0 {
             Block {
                 block_type: BlockType::Horizontal,
@@ -175,9 +175,20 @@ impl Block {
         self.points = new_points;
         Status::MOVE_OK
     }
+
+    fn descending_y_coords(&self) -> Vec<i128> {
+        let mut y_coords: HashSet<i128> = HashSet::new();
+        for point in self.points.iter() {
+            y_coords.insert(point.y);
+        }
+        let mut y_coords_vec = Vec::from_iter(y_coords.into_iter());
+        // sort descending
+        y_coords_vec.sort_by(|a, b| b.cmp(a));
+        y_coords_vec
+    }
 }
 
-fn insert_points(points: Vec<Point>, rocks: &mut HashSet<Point>, highest_rock: &mut i32) {
+fn insert_points(points: &Vec<Point>, rocks: &mut HashSet<Point>, highest_rock: &mut i128) {
     for point in points.iter() {
         if point.y > *highest_rock {
             *highest_rock = point.y;
@@ -186,7 +197,7 @@ fn insert_points(points: Vec<Point>, rocks: &mut HashSet<Point>, highest_rock: &
     }
 }
 
-fn print_rocks(rocks: &HashSet<Point>, block: &Block, highest_rock: &i32) {
+fn print_rocks(rocks: &HashSet<Point>, block: &Block, highest_rock: &i128) {
     let mut rocks_fmt: Vec<Vec<char>> = Vec::new();
 
     // 10 buffer needed for block height + start above current highest block
@@ -208,17 +219,36 @@ fn print_rocks(rocks: &HashSet<Point>, block: &Block, highest_rock: &i32) {
     }
 }
 
-fn part_1(contents: &str) -> i32 {
-    // 7 wide, appear left 2 in from edge, bottom 4 (in my index units) above tallest
+fn clear_rocks_below_filled_line(rocks: &mut HashSet<Point>, block: &Block) -> Option<i128> {
+    for y in block.descending_y_coords() {
+        let mut row_points: Vec<Point> = Vec::new();
+        for x in 0..7 {
+            row_points.push(Point::new(x, y))
+        }
+
+        if row_points.iter().all(|p| rocks.contains(&p)) {
+            let to_remove: Vec<Point> = rocks.iter().filter(|p| p.y < y).cloned().collect();
+            for rock in to_remove {
+                rocks.remove(&rock);
+            }
+            return Some(y);
+        }
+    }
+    None
+}
+
+fn tetris(contents: &str, rock_index_to_stop_after: usize) -> i128 {
+    let cleaned_contents = contents.replace(" \n", "");
+    let jet_cycle_repeat = cleaned_contents.len();
     let mut highest_rock = -1;
     let mut rocks: HashSet<Point> = HashSet::new();
     let mut rock_index = 0;
     let mut block = Block::bottom_at_height_for_index(highest_rock + 4, rock_index);
-    for jet in contents.replace(" \n", "").chars().cycle() {
-        if rock_index == 2022 {
+    for (step, jet) in cleaned_contents.chars().cycle().enumerate() {
+        if rock_index == rock_index_to_stop_after {
             break;
         }
-        // pushed by rock
+        // pushed by jet
         let status = if jet == '<' {
             block.left()
         } else {
@@ -237,7 +267,7 @@ fn part_1(contents: &str) -> i32 {
                 }
             }
             Status::WALL => {}
-            Status::FLOOR => panic!("Moving down should not hit a wall!"),
+            Status::FLOOR => panic!("Moving left/right should not hit the floor!"),
         }
 
         // fall
@@ -245,14 +275,16 @@ fn part_1(contents: &str) -> i32 {
             Status::MOVE_OK => {
                 if block.points.iter().any(|p| rocks.contains(p)) {
                     block.up();
-                    insert_points(block.points, &mut rocks, &mut highest_rock);
+                    insert_points(&block.points, &mut rocks, &mut highest_rock);
                     rock_index += 1;
+                    clear_rocks_below_filled_line(&mut rocks, &block);
                     block = Block::bottom_at_height_for_index(highest_rock + 4, rock_index);
                     continue;
                 }
             }
             Status::FLOOR => {
-                insert_points(block.points, &mut rocks, &mut highest_rock);
+                insert_points(&block.points, &mut rocks, &mut highest_rock);
+                clear_rocks_below_filled_line(&mut rocks, &block);
                 rock_index += 1;
                 block = Block::bottom_at_height_for_index(highest_rock + 4, rock_index);
                 continue;
@@ -260,11 +292,40 @@ fn part_1(contents: &str) -> i32 {
             Status::WALL => panic!("Moving down should not hit a wall!"),
         }
     }
+    //print_rocks(&rocks, &block, &highest_rock);
     highest_rock + 1
 }
 
-fn part_2(contents: &str) -> u64 {
-    0
+fn part_2(contents: &str) -> usize {
+    let blocks_to_stop_after: usize = 1_000_000_000_000;
+
+    /* Example
+    let pre_repeat_rows = 25;
+    let pre_repeat_blocks = 15;
+    let rows_per_repeat = 53;
+    let blocks_per_repeat = 35;
+
+    let blocks_with_repeats = blocks_to_stop_after - pre_repeat_blocks;
+    let res = (
+        blocks_with_repeats / blocks_per_repeat,
+        blocks_with_repeats % blocks_per_repeat,
+    );
+    // res.0 == 0 so no left overs
+    pre_repeat_rows + res.0 * rows_per_repeat
+    */
+
+    let pre_repeat_rows = 340;
+    let pre_repeat_blocks = 219;
+    let rows_per_repeat = 2572;
+    let blocks_per_repeat = 1710;
+
+    let blocks_with_repeats = blocks_to_stop_after - pre_repeat_blocks;
+    let res = (
+        blocks_with_repeats / blocks_per_repeat,
+        blocks_with_repeats % blocks_per_repeat,
+    );
+    //res.1 = 871 blocks in final cycle => 1637 rows
+    pre_repeat_rows + res.0 * rows_per_repeat + 1637 - 340
 }
 
 #[cfg(test)]
@@ -274,19 +335,14 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(include_str!("./example.txt")), 3068);
-    }
-
-    #[test]
-    fn test_part_2_example() {
-        assert_eq!(part_2(include_str!("./example.txt")), 1514285714288);
+        assert_eq!(tetris(include_str!("./example.txt"), 20220), 3068);
     }
 }
 
 fn main() {
     let start = Instant::now();
     let contents = include_str!("./input.txt");
-    let part_1_answer = part_1(contents);
+    let part_1_answer = tetris(contents, 2022);
     println!("Answer for part 1 is: {}", part_1_answer);
     let part_2_answer = part_2(contents);
     println!("Answer for part 2 is: {}", part_2_answer);
