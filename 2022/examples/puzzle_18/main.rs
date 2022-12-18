@@ -75,6 +75,41 @@ impl Cube {
             panic!("Manhattan distance was not 1!")
         }
     }
+
+    fn adjacent_cubes(&self) -> Vec<Self> {
+        vec![
+            Cube {
+                x: self.x + 1,
+                y: self.y,
+                z: self.z,
+            },
+            Cube {
+                x: self.x - 1,
+                y: self.y,
+                z: self.z,
+            },
+            Cube {
+                x: self.x,
+                y: self.y + 1,
+                z: self.z,
+            },
+            Cube {
+                x: self.x,
+                y: self.y - 1,
+                z: self.z,
+            },
+            Cube {
+                x: self.x,
+                y: self.y,
+                z: self.z + 1,
+            },
+            Cube {
+                x: self.x,
+                y: self.y,
+                z: self.z - 1,
+            },
+        ]
+    }
 }
 
 fn parse_cubes(contents: &str) -> Vec<Cube> {
@@ -287,7 +322,7 @@ fn part_2_no_diagonals(contents: &str) -> usize {
     connected_components.iter().map(|v| v.len()).max().unwrap()
 }
 
-fn part_2(contents: &str) -> u64 {
+fn part_2_with_faces(contents: &str) -> u64 {
     let cubes: HashSet<Cube> = HashSet::from_iter(parse_cubes(contents));
     let mut faces: HashSet<Face> = HashSet::new();
     for cube in cubes.iter() {
@@ -346,37 +381,51 @@ fn part_2(contents: &str) -> u64 {
         }
         visited_cubes.insert(next_cube);
 
-        // nearby cubes
-        walking_cubes.push(Cube {
-            x: next_cube.x + 1,
-            y: next_cube.y,
-            z: next_cube.z,
-        });
-        walking_cubes.push(Cube {
-            x: next_cube.x - 1,
-            y: next_cube.y,
-            z: next_cube.z,
-        });
-        walking_cubes.push(Cube {
-            x: next_cube.x,
-            y: next_cube.y + 1,
-            z: next_cube.z,
-        });
-        walking_cubes.push(Cube {
-            x: next_cube.x,
-            y: next_cube.y - 1,
-            z: next_cube.z,
-        });
-        walking_cubes.push(Cube {
-            x: next_cube.x,
-            y: next_cube.y,
-            z: next_cube.z + 1,
-        });
-        walking_cubes.push(Cube {
-            x: next_cube.x,
-            y: next_cube.y,
-            z: next_cube.z - 1,
-        });
+        for cube in next_cube.adjacent_cubes().into_iter() {
+            walking_cubes.push(cube);
+        }
+    }
+    answer
+}
+
+fn part_2(contents: &str) -> u64 {
+    let cubes: HashSet<Cube> = HashSet::from_iter(parse_cubes(contents));
+
+    let mut answer = 0;
+    // dumb search space that only works for small cube-like areas
+    let min_bound = cubes.iter().map(|c| c.x.min(c.y.min(c.z))).min().unwrap() - 2;
+    let max_bound = cubes.iter().map(|c| c.x.max(c.y.max(c.z))).max().unwrap() + 2;
+
+    let mut walking_cubes = vec![Cube {
+        x: min_bound,
+        y: min_bound,
+        z: min_bound,
+    }];
+    let mut visited_cubes: HashSet<Cube> = HashSet::new();
+
+    while walking_cubes.len() > 0 {
+        let next_cube = walking_cubes.pop().unwrap();
+
+        if visited_cubes.contains(&next_cube) {
+            continue;
+        } else if cubes.contains(&next_cube) {
+            answer += 1;
+            continue;
+        } else if next_cube.x < min_bound
+            || next_cube.x > max_bound
+            || next_cube.y < min_bound
+            || next_cube.y > max_bound
+            || next_cube.z < min_bound
+            || next_cube.z > max_bound
+        {
+            // out of bounds
+            continue;
+        }
+        visited_cubes.insert(next_cube);
+
+        for cube in next_cube.adjacent_cubes().into_iter() {
+            walking_cubes.push(cube);
+        }
     }
     answer
 }
