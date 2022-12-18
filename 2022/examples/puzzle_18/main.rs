@@ -426,13 +426,19 @@ mod tests {
     }
 
     #[test]
-    fn test_part_2_non_diagonal_example() {
+    fn test_part_2_non_diagonal_example_connected_component_algorithm() {
         // single cube completely enclosed, no diagonal case (easy!)
         // connected components approach works here
         assert_eq!(
             part_2_no_diagonals(include_str!("./non_diagonal_example.txt")),
             6 * 9
         );
+    }
+
+    #[test]
+    fn test_part_2_non_diagonal_example() {
+        // single cube completely enclosed, no diagonal case (easy!)
+        assert_eq!(part_2(include_str!("./non_diagonal_example.txt")), 6 * 9);
     }
 
     #[test]
