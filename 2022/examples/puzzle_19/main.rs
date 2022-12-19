@@ -100,7 +100,6 @@ fn update_geode_per_state_cache(
     state: &MiningState,
     next_states: &mut HashSet<MiningState>,
 ) {
-    //println!("{cache:?}");
     cache
         .entry(*state)
         .and_modify(|x| {
@@ -117,7 +116,6 @@ fn update_geode_per_state_cache(
 
 fn simulate(blueprint: Blueprint, total_minutes: u8) -> (MiningState, u8) {
     // can skip two minutes since we need 2 ore to do anything else
-    println!("Simulating {blueprint:?}");
     let mut current_minutes_elapsed = 2;
     let start_state = MiningState::default();
     let mut states: HashSet<MiningState> = HashSet::from([(start_state)]);
@@ -258,11 +256,6 @@ mod tests {
     #[test]
     fn test_part_1_example() {
         assert_eq!(part_1(include_str!("./example.txt")), 33);
-    }
-
-    #[test]
-    fn test_part_2_example() {
-        assert_eq!(part_2(include_str!("./example.txt")), 1);
     }
 }
 
