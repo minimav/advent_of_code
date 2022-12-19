@@ -18,6 +18,12 @@ mod tests {
     use super::*;
     use rstest::*;
 
+    #[rstest]
+    #[case("<input>", 1)]
+    fn test_(#[case] input: &str, #[case] expected: u64) {
+        assert_eq!(part_1(input), expected);
+    }
+
     #[test]
     fn test_part_1_example() {
         assert_eq!(part_1(include_str!("./example.txt")), 1);
