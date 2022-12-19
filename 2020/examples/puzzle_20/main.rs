@@ -1,10 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::time::Instant;
 
 const TILE_SIZE: usize = 10;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct Tile([[char; TILE_SIZE]; TILE_SIZE]);
 
 impl Default for Tile {
@@ -113,8 +113,8 @@ impl Tile {
     }
 }
 
-fn parse_tiles(contents: &str) -> HashMap<u64, Tile> {
-    let mut tiles: HashMap<u64, Tile> = HashMap::new();
+fn parse_tiles(contents: &str) -> BTreeMap<u64, Tile> {
+    let mut tiles: BTreeMap<u64, Tile> = BTreeMap::new();
     let mut current_tile_number: u64 = 0;
     let mut current_tile = Tile::default();
     let mut current_row: usize = 0;
@@ -141,7 +141,7 @@ fn parse_tiles(contents: &str) -> HashMap<u64, Tile> {
     tiles
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 struct TileWithId {
     id: u64,
     tile: Tile,
@@ -153,11 +153,11 @@ impl TileWithId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 struct Arrangement {
-    tiles: HashMap<(i8, i8), TileWithId>,
-    outside: HashSet<(i8, i8)>,
-    ids: HashSet<u64>,
+    tiles: BTreeMap<(i8, i8), TileWithId>,
+    outside: BTreeSet<(i8, i8)>,
+    ids: BTreeSet<u64>,
 }
 
 impl fmt::Display for Arrangement {
@@ -189,7 +189,7 @@ impl Arrangement {
     }
 
     fn is_valid_square(&self) -> bool {
-        let mut neighbour_counts: HashMap<i8, i8> = HashMap::new();
+        let mut neighbour_counts: BTreeMap<i8, i8> = BTreeMap::new();
         for (coords, tile) in self.tiles.iter() {
             let num_neighbours = self.get_num_neighbours(coords);
             neighbour_counts
@@ -198,28 +198,20 @@ impl Arrangement {
                 .or_insert(1);
         }
 
-        let num_tiles = self.tiles.len() as i8;
+        let num_tiles = self.tiles.len();
         let side_length = (num_tiles as f64).sqrt() as i8;
 
-        if side_length.pow(2) != num_tiles {
-            // not a square
-            //println!("Not a square");
-            return false;
-        } else if neighbour_counts.len() != 3 {
+        if neighbour_counts.len() != 3 {
             // tiles should only have 2, 3 or 4 neighbours
-            //println!("Only 3 neighbour counts");
             return false;
         } else if neighbour_counts.get(&2) != Some(&4) {
             // only 4 corners should have 2 neighbours
-            //println!("Not 4 corners");
             return false;
         } else if neighbour_counts.get(&3) != Some(&(4 * side_length - 8)) {
             // edge but not corners should have 3 neighbours
-            //println!("Not right 3 neighbour count");
             return false;
         } else if neighbour_counts.get(&4) != Some(&(side_length - 2).pow(2)) {
             // inner grid should all have 4 neighbours
-            //println!("Not right 4 neighbour count");
             return false;
         }
         true
@@ -237,11 +229,11 @@ impl Arrangement {
 }
 
 fn create_new_arrangements(
-    arrangements: Vec<Arrangement>,
+    arrangements: BTreeSet<Arrangement>,
     tile: TileWithId,
     grid_size: i8,
-) -> Vec<Arrangement> {
-    let mut new_arrangements: Vec<Arrangement> = Vec::new();
+) -> BTreeSet<Arrangement> {
+    let mut new_arrangements: BTreeSet<Arrangement> = BTreeSet::new();
 
     for arrangement in arrangements.iter() {
         if arrangement.ids.contains(&tile.id) {
@@ -255,7 +247,6 @@ fn create_new_arrangements(
                         if !variant.match_right(&other_tile.tile) {
                             continue;
                         }
-                        //println!("RIGHT PASS\n{variant}with\n{}", other_tile.tile);
                     }
                     _ => (),
                 }
@@ -264,7 +255,6 @@ fn create_new_arrangements(
                         if !variant.match_left(&other_tile.tile) {
                             continue;
                         }
-                        //println!("LEFT PASS\n{variant}with\n{}", other_tile.tile);
                     }
                     _ => (),
                 }
@@ -273,7 +263,6 @@ fn create_new_arrangements(
                         if !variant.match_top(&other_tile.tile) {
                             continue;
                         }
-                        //println!("TOP PASS\n{variant}with\n{}", other_tile.tile);
                     }
                     _ => (),
                 }
@@ -282,12 +271,10 @@ fn create_new_arrangements(
                         if !variant.match_bottom(&other_tile.tile) {
                             continue;
                         }
-                        //println!("BOTTOM PASS\n{variant}with\n{}", other_tile.tile);
                     }
                     _ => (),
                 }
 
-                //println!("Variant match @ {coords:?} for id={}\n{variant}", tile.id);
                 // passed all checks, so this is a valid arrangement
                 let mut new_arrangement = arrangement.clone();
                 new_arrangement.tiles.insert(
@@ -300,38 +287,91 @@ fn create_new_arrangements(
                 new_arrangement.ids.insert(tile.id.clone());
                 new_arrangement.outside.remove(coords);
                 let above = (coords.0, coords.1 + 1);
-                if above.0.abs() <= grid_size
-                    && above.1.abs() <= grid_size
-                    && !new_arrangement.tiles.contains_key(&above)
-                {
+                if !new_arrangement.tiles.contains_key(&above) {
                     new_arrangement.outside.insert(above);
                 }
                 let below = (coords.0, coords.1 - 1);
-                if below.0.abs() <= grid_size
-                    && below.1.abs() <= grid_size
-                    && !new_arrangement.tiles.contains_key(&below)
-                {
+                if !new_arrangement.tiles.contains_key(&below) {
                     new_arrangement.outside.insert(below);
                 }
                 let left = (coords.0 - 1, coords.1);
-                if left.0.abs() <= grid_size
-                    && left.1.abs() <= grid_size
-                    && !new_arrangement.tiles.contains_key(&left)
-                {
+                if !new_arrangement.tiles.contains_key(&left) {
                     new_arrangement.outside.insert(left);
                 }
                 let right = (coords.0, coords.1 + 1);
-                if right.0.abs() <= grid_size
-                    && right.1.abs() <= grid_size
-                    && !new_arrangement.tiles.contains_key(&right)
-                {
+                if !new_arrangement.tiles.contains_key(&right) {
                     new_arrangement.outside.insert(right);
                 }
-                new_arrangements.push(new_arrangement);
+                new_arrangements.insert(new_arrangement);
             }
         }
     }
     new_arrangements
+}
+
+fn find_corners(tiles: Vec<TileWithId>) -> Vec<u64> {
+    let mut edge_patterns: BTreeMap<[char; TILE_SIZE], u8> = BTreeMap::new();
+    for tile in tiles.iter() {
+        edge_patterns
+            .entry(tile.tile.top())
+            .and_modify(|x| *x += 1)
+            .or_insert(1);
+        edge_patterns
+            .entry(tile.tile.bottom())
+            .and_modify(|x| *x += 1)
+            .or_insert(1);
+        edge_patterns
+            .entry(tile.tile.left())
+            .and_modify(|x| *x += 1)
+            .or_insert(1);
+        edge_patterns
+            .entry(tile.tile.right())
+            .and_modify(|x| *x += 1)
+            .or_insert(1);
+
+        let tv = tile.tile.flip_vertical();
+        edge_patterns
+            .entry(tv.top())
+            .and_modify(|x| *x += 1)
+            .or_insert(1);
+        edge_patterns
+            .entry(tv.bottom())
+            .and_modify(|x| *x += 1)
+            .or_insert(1);
+
+        let th = tile.tile.flip_horizontal();
+        edge_patterns
+            .entry(th.left())
+            .and_modify(|x| *x += 1)
+            .or_insert(1);
+        edge_patterns
+            .entry(th.right())
+            .and_modify(|x| *x += 1)
+            .or_insert(1);
+    }
+
+    let mut corners: Vec<u64> = Vec::new();
+    for tile in tiles.iter() {
+        let mut num_with_one_match = 0;
+        if edge_patterns.get(&tile.tile.top()).unwrap() == &1 {
+            num_with_one_match += 1;
+        }
+        if edge_patterns.get(&tile.tile.bottom()).unwrap() == &1 {
+            num_with_one_match += 1;
+        }
+        if edge_patterns.get(&tile.tile.left()).unwrap() == &1 {
+            num_with_one_match += 1;
+        }
+        if edge_patterns.get(&tile.tile.right()).unwrap() == &1 {
+            num_with_one_match += 1;
+        }
+
+        if num_with_one_match == 2 {
+            corners.push(tile.id);
+        }
+    }
+    println!("{corners:?}");
+    corners
 }
 
 fn part_1(contents: &str) -> u64 {
@@ -340,42 +380,67 @@ fn part_1(contents: &str) -> u64 {
         .map(|(i, t)| TileWithId::new(i, t))
         .collect::<Vec<_>>();
 
+    let corners = find_corners(tiles);
+    corners.iter().product()
+}
+
+fn create_mega_grid(arrangement: Arrangement, grid_size: i8) -> Vec<Vec<char>> {
+    let mut grid: Vec<Vec<char>> = Vec::new();
+    let mega_grid_size = grid_size as usize * (TILE_SIZE - 2);
+    for _ in 0..mega_grid_size {
+        grid.push(vec!['.'; mega_grid_size]);
+    }
+    for (coords, tile) in arrangement.tiles.into_iter() {
+        let tile_arr = tile.tile.0;
+        for (row_index, row) in tile_arr[1..TILE_SIZE - 1].iter().enumerate() {
+            for (column_index, char) in row[1..TILE_SIZE - 1].iter().enumerate() {
+                let mega_row_index = coords.1.abs() as usize * (TILE_SIZE - 2) + row_index;
+                let mega_column_index =
+                    (grid_size - coords.0.abs() - 1) as usize * (TILE_SIZE - 2) + column_index;
+                grid[mega_row_index][mega_column_index] = *char;
+            }
+        }
+    }
+    for row in grid.iter() {
+        println!("{}", row.iter().cloned().collect::<String>());
+    }
+    grid
+}
+
+fn part_2(contents: &str) -> u64 {
+    let mut tiles: BTreeMap<u64, TileWithId> = BTreeMap::from_iter(
+        parse_tiles(contents)
+            .into_iter()
+            .map(|(i, t)| (i, TileWithId::new(i, t)))
+            .collect::<Vec<_>>(),
+    );
+
     let num_iterations = tiles.len() - 1;
     let grid_size = (tiles.len() as f64).sqrt() as i8;
     println!("Grid size is {grid_size} ({} tiles)", tiles.len());
-    let mut arrangements: Vec<Arrangement> = Vec::new();
-    let first_tile = tiles.pop().unwrap();
-    println!("Starting with 8 variants of id={}", first_tile.id);
-    for first_tile_variant in first_tile.tile.variants() {
-        let tile_with_id = TileWithId::new(first_tile.id, first_tile_variant);
-        let id = tile_with_id.id.clone();
-        arrangements.push(Arrangement {
-            tiles: HashMap::from([((0, 0), tile_with_id)]),
-            ids: HashSet::from([id]),
-            outside: HashSet::from([(-1, 0), (1, 0), (0, -1), (0, 1)]),
-        });
-    }
+    let mut arrangements: BTreeSet<Arrangement> = BTreeSet::new();
+
+    // corners are 1009, 1087, 1327, 2753
+    let id = 1009;
+    let corner_tile = tiles.remove(&id).unwrap();
+    // only should build in negative directions
+    arrangements.insert(Arrangement {
+        tiles: BTreeMap::from([((0, 0), corner_tile)]),
+        ids: BTreeSet::from([id]),
+        outside: BTreeSet::from([(-1, 0), (0, -1)]),
+    });
 
     for iteration in 0..num_iterations {
-        println!(
-            "Iteration {}, {} arrangements",
-            iteration + 1,
-            arrangements.len()
-        );
-        let mut new_arrangements: Vec<Arrangement> = Vec::new();
-        for tile in tiles.iter() {
+        let mut new_arrangements: BTreeSet<Arrangement> = BTreeSet::new();
+
+        for (id, tile) in tiles.iter() {
             let new_arrangements_with_tile =
                 create_new_arrangements(arrangements.clone(), tile.clone(), grid_size);
             if new_arrangements_with_tile.len() > 0 {
-                println!(
-                    "id={} variants have {} arrangements",
-                    tile.id,
-                    new_arrangements_with_tile.len()
-                );
-            }
-
-            for arrangement in new_arrangements_with_tile.into_iter() {
-                new_arrangements.push(arrangement);
+                for arrangement in new_arrangements_with_tile.into_iter() {
+                    new_arrangements.insert(arrangement);
+                }
+                break;
             }
         }
         if arrangements.len() == 0 {
@@ -385,16 +450,12 @@ fn part_1(contents: &str) -> u64 {
     }
 
     for arrangement in arrangements.into_iter() {
-        //println!("{arrangement}");
         if arrangement.is_valid_square() {
-            return arrangement.corner_product();
+            assert_eq!(arrangement.corner_product(), 4006801655873);
+            create_mega_grid(arrangement, grid_size);
         }
     }
     panic!("At least one arrangement should be a valid square!")
-}
-
-fn part_2(contents: &str) -> u64 {
-    0
 }
 
 #[cfg(test)]
@@ -403,7 +464,7 @@ mod tests {
     use rstest::*;
 
     #[fixture]
-    fn tiles() -> HashMap<u64, Tile> {
+    fn tiles() -> BTreeMap<u64, Tile> {
         parse_tiles(include_str!("./example.txt"))
     }
 
@@ -417,7 +478,7 @@ mod tests {
     #[case(2971)]
     #[case(1489)]
     #[case(1171)]
-    fn test_transformations_are_invariant(tiles: HashMap<u64, Tile>, #[case] id: u64) {
+    fn test_transformations_are_invariant(tiles: BTreeMap<u64, Tile>, #[case] id: u64) {
         let tile = tiles.get(&id).unwrap().clone();
 
         assert_eq!(tile, tile.flip_diagonal().flip_diagonal());
@@ -432,7 +493,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_matches_in_example(tiles: HashMap<u64, Tile>) {
+    fn test_matches_in_example(tiles: BTreeMap<u64, Tile>) {
         let top_middle = tiles.get(&2311).unwrap().flip_horizontal();
         let top_left = tiles.get(&1951).unwrap().flip_horizontal();
         let middle = tiles.get(&1427).unwrap().flip_horizontal();
