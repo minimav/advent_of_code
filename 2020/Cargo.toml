@@ -74,3 +74,6 @@ name = "puzzle_21"
 
 [[example]]
 name = "puzzle_22"
+
+[[example]]
+name = "puzzle_23"
