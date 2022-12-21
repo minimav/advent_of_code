@@ -6,8 +6,6 @@ fn do_move(
     current_cup_index: &mut usize,
     length: usize,
 ) {
-    //println!("{cups:?} {current_cup_index}");
-
     let remove_index = (*current_cup_index + 1) % length;
     let value_1 = cups.remove(remove_index);
     let value_2 = if remove_index < cups.len() {
@@ -20,7 +18,6 @@ fn do_move(
     } else {
         cups.remove(0)
     };
-    //println!("{value_1} {value_2} {value_3}");
 
     let mut destination: u64 = current_cup.clone();
     loop {
@@ -33,15 +30,12 @@ fn do_move(
             break;
         }
     }
-    //println!("{destination}");
 
     let destination_index = cups.iter().position(|x| x == &destination).unwrap();
-    //println!("{destination_index}");
 
     cups.insert((destination_index + 1) % length, value_3);
     cups.insert((destination_index + 1) % length, value_2);
     cups.insert((destination_index + 1) % length, value_1);
-    //println!("{cups:?}");
 
     let updated_current_cup_index = cups.iter().position(|x| x == current_cup).unwrap();
     *current_cup_index = (updated_current_cup_index + 1) % length;
@@ -79,32 +73,71 @@ fn part_1(contents: &str, num_moves: u8) -> u64 {
         .sum()
 }
 
-fn part_2(contents: &str, num_moves: u64, numbers_up_to: usize) -> u64 {
-    let mut cups: Vec<u64> = Vec::new();
-    for char in contents.chars() {
-        let cup: u64 = char.to_digit(10).unwrap().into();
-        cups.push(cup)
-    }
-    for cup in (cups.len() + 1)..=numbers_up_to {
-        cups.push(cup as u64);
-    }
+fn linked_list_move(cups: &mut Vec<usize>, current_cup: &mut usize, numbers_up_to: usize) {
+    let one_ahead_cup = cups[*current_cup];
+    let two_ahead_cup = cups[one_ahead_cup];
+    let three_ahead_cup = cups[two_ahead_cup];
+    let four_ahead_cup = cups[three_ahead_cup];
 
-    let length = cups.len();
-    let mut current_cup = cups[0];
-    let mut current_cup_index: usize = 0;
+    cups[*current_cup] = four_ahead_cup;
 
-    let start = Instant::now();
-    for move_number in 0..num_moves {
-        // 7 seconds/ 1000 moves => 70 000 seconds ~ 22 hours for all moves
-        if move_number % 1_000 == 0 {
-            let duration = start.elapsed();
-            println!("Took {:?} up till move {move_number}", duration);
+    // destination
+    let mut destination = *current_cup;
+    loop {
+        if destination == 1 {
+            destination = numbers_up_to;
+        } else {
+            destination -= 1;
         }
-        do_move(&mut cups, &mut current_cup, &mut current_cup_index, length);
+        if !(destination == one_ahead_cup
+            || destination == two_ahead_cup
+            || destination == three_ahead_cup)
+        {
+            break;
+        }
     }
 
-    let one_index = cups.iter().position(|x| x == &1).unwrap();
-    cups[(one_index + 1) % length] * cups[(one_index + 2) % length]
+    // insert
+    let mut destination_cup = cups[destination];
+    cups[three_ahead_cup] = destination_cup;
+
+    cups[destination] = one_ahead_cup;
+
+    // update current cup
+    *current_cup = cups[*current_cup];
+}
+
+fn part_2(contents: &str, num_moves: u64, numbers_up_to: usize) -> usize {
+    let mut cups: Vec<usize> = vec![0; numbers_up_to + 1];
+    let parsed_input = contents
+        .chars()
+        .map(|c| c.to_digit(10).unwrap() as usize)
+        .collect::<Vec<usize>>();
+
+    for (index, value) in parsed_input.iter().enumerate() {
+        let cup = if index < parsed_input.len() - 1 {
+            parsed_input[index + 1]
+        } else {
+            parsed_input.len() + 1
+        };
+        cups[*value as usize] = cup
+    }
+    // first additional number
+    let additional_start = parsed_input.len() + 1;
+    for index in additional_start..numbers_up_to {
+        cups[index] = index + 1;
+    }
+    // final additional number
+    cups[numbers_up_to] = parsed_input[0];
+
+    let mut current_cup = parsed_input[0];
+    for _ in 0..num_moves {
+        linked_list_move(&mut cups, &mut current_cup, numbers_up_to);
+    }
+
+    let next = cups[1];
+    let next_again = cups[next];
+    next * next_again
 }
 
 #[cfg(test)]
