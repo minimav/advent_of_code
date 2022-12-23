@@ -1,11 +1,6 @@
+use num::complex::Complex;
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
-struct Point {
-    x: i64,
-    y: i64,
-}
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum Direction {
@@ -19,210 +14,96 @@ enum Direction {
     SOUTH_WEST,
 }
 
-impl Point {
-    fn neighbours(&self) -> HashMap<Direction, Self> {
-        HashMap::from_iter(vec![
-            (
-                Direction::EAST,
-                Point {
-                    x: self.x + 1,
-                    y: self.y,
-                },
-            ),
-            (
-                Direction::WEST,
-                Point {
-                    x: self.x - 1,
-                    y: self.y,
-                },
-            ),
-            (
-                Direction::NORTH,
-                Point {
-                    x: self.x,
-                    y: self.y - 1,
-                },
-            ),
-            (
-                Direction::SOUTH,
-                Point {
-                    x: self.x,
-                    y: self.y + 1,
-                },
-            ),
-            (
-                Direction::SOUTH_EAST,
-                Point {
-                    x: self.x + 1,
-                    y: self.y + 1,
-                },
-            ),
-            (
-                Direction::NORTH_EAST,
-                Point {
-                    x: self.x + 1,
-                    y: self.y - 1,
-                },
-            ),
-            (
-                Direction::NORTH_WEST,
-                Point {
-                    x: self.x - 1,
-                    y: self.y - 1,
-                },
-            ),
-            (
-                Direction::SOUTH_WEST,
-                Point {
-                    x: self.x - 1,
-                    y: self.y + 1,
-                },
-            ),
-        ])
-    }
+fn neighbours(point: &Complex<i64>) -> HashMap<Direction, Complex<i64>> {
+    HashMap::from_iter(vec![
+        (Direction::EAST, point + Complex::new(1, 0)),
+        (Direction::WEST, point + Complex::new(-1, 0)),
+        (Direction::NORTH, point + Complex::new(0, -1)),
+        (Direction::SOUTH, point + Complex::new(0, 1)),
+        (Direction::SOUTH_EAST, point + Complex::new(1, 1)),
+        (Direction::NORTH_EAST, point + Complex::new(1, -1)),
+        (Direction::NORTH_WEST, point + Complex::new(-1, -1)),
+        (Direction::SOUTH_WEST, point + Complex::new(-1, 1)),
+    ])
+}
 
-    fn check_north(
-        &self,
-        has_neighbours: &HashMap<Direction, bool>,
-        round: usize,
-    ) -> (Option<Point>, usize) {
-        // If there is no Elf in the N, NE, or NW adjacent positions, the Elf proposes moving north one step.
-        if !has_neighbours.get(&Direction::NORTH).unwrap()
-            && !has_neighbours.get(&Direction::NORTH_EAST).unwrap()
-            && !has_neighbours.get(&Direction::NORTH_WEST).unwrap()
-        {
-            let priority = if round % 4 == 0 {
-                0
-            } else if round % 4 == 1 {
-                3
-            } else if round % 4 == 2 {
-                2
-            } else {
-                1
-            };
-            (
-                Some(Point {
-                    x: self.x,
-                    y: self.y - 1,
-                }),
-                priority,
-            )
-        } else {
-            (None, usize::MAX)
-        }
-    }
-
-    fn check_south(
-        &self,
-        has_neighbours: &HashMap<Direction, bool>,
-        round: usize,
-    ) -> (Option<Point>, usize) {
-        // If there is no Elf in the S, SE, or SW adjacent positions, the Elf proposes moving south one step.
-        if !has_neighbours.get(&Direction::SOUTH).unwrap()
-            && !has_neighbours.get(&Direction::SOUTH_EAST).unwrap()
-            && !has_neighbours.get(&Direction::SOUTH_WEST).unwrap()
-        {
-            let priority = if round % 4 == 0 {
-                1
-            } else if round % 4 == 1 {
-                0
-            } else if round % 4 == 2 {
-                3
-            } else {
-                2
-            };
-            (
-                Some(Point {
-                    x: self.x,
-                    y: self.y + 1,
-                }),
-                priority,
-            )
-        } else {
-            (None, usize::MAX)
-        }
-    }
-
-    fn check_east(
-        &self,
-        has_neighbours: &HashMap<Direction, bool>,
-        round: usize,
-    ) -> (Option<Point>, usize) {
-        // If there is no Elf in the E, NE, or SE adjacent positions, the Elf proposes moving east one step.
-        if !has_neighbours.get(&Direction::EAST).unwrap()
-            && !has_neighbours.get(&Direction::NORTH_EAST).unwrap()
-            && !has_neighbours.get(&Direction::SOUTH_EAST).unwrap()
-        {
-            let priority = if round % 4 == 0 {
-                3
-            } else if round % 4 == 1 {
-                2
-            } else if round % 4 == 2 {
-                1
-            } else {
-                0
-            };
-            (
-                Some(Point {
-                    x: self.x + 1,
-                    y: self.y,
-                }),
-                priority,
-            )
-        } else {
-            (None, usize::MAX)
-        }
-    }
-
-    fn check_west(
-        &self,
-        has_neighbours: &HashMap<Direction, bool>,
-        round: usize,
-    ) -> (Option<Point>, usize) {
-        // If there is no Elf in the W, NW, or SW adjacent positions, the Elf proposes moving west one step.
-        if !has_neighbours.get(&Direction::WEST).unwrap()
-            && !has_neighbours.get(&Direction::SOUTH_WEST).unwrap()
-            && !has_neighbours.get(&Direction::NORTH_WEST).unwrap()
-        {
-            let priority = if round % 4 == 0 {
-                2
-            } else if round % 4 == 1 {
-                1
-            } else if round % 4 == 2 {
-                0
-            } else {
-                3
-            };
-            (
-                Some(Point {
-                    x: self.x - 1,
-                    y: self.y,
-                }),
-                priority,
-            )
-        } else {
-            (None, usize::MAX)
-        }
+fn check_north(
+    point: &Complex<i64>,
+    has_neighbours: &HashMap<Direction, bool>,
+) -> Option<Complex<i64>> {
+    // If there is no Elf in the N, NE, or NW adjacent positions, the Elf proposes moving north one step.
+    if !has_neighbours.get(&Direction::NORTH).unwrap()
+        && !has_neighbours.get(&Direction::NORTH_EAST).unwrap()
+        && !has_neighbours.get(&Direction::NORTH_WEST).unwrap()
+    {
+        Some(point + Complex::new(0, -1))
+    } else {
+        None
     }
 }
 
-fn get_answer(grid: HashSet<Point>) -> i64 {
-    let min_x = grid.iter().map(|p| p.x).min().unwrap();
-    let max_x = grid.iter().map(|p| p.x).max().unwrap();
-    let min_y = grid.iter().map(|p| p.y).min().unwrap();
-    let max_y = grid.iter().map(|p| p.y).max().unwrap();
+fn check_south(
+    point: &Complex<i64>,
+    has_neighbours: &HashMap<Direction, bool>,
+) -> Option<Complex<i64>> {
+    // If there is no Elf in the S, SE, or SW adjacent positions, the Elf proposes moving south one step.
+    if !has_neighbours.get(&Direction::SOUTH).unwrap()
+        && !has_neighbours.get(&Direction::SOUTH_EAST).unwrap()
+        && !has_neighbours.get(&Direction::SOUTH_WEST).unwrap()
+    {
+        Some(point + Complex::new(0, 1))
+    } else {
+        None
+    }
+}
+
+fn check_east(
+    point: &Complex<i64>,
+    has_neighbours: &HashMap<Direction, bool>,
+) -> Option<Complex<i64>> {
+    // If there is no Elf in the E, NE, or SE adjacent positions, the Elf proposes moving east one step.
+    if !has_neighbours.get(&Direction::EAST).unwrap()
+        && !has_neighbours.get(&Direction::NORTH_EAST).unwrap()
+        && !has_neighbours.get(&Direction::SOUTH_EAST).unwrap()
+    {
+        Some(point + Complex::new(1, 0))
+    } else {
+        None
+    }
+}
+
+fn check_west(
+    point: &Complex<i64>,
+    has_neighbours: &HashMap<Direction, bool>,
+) -> Option<Complex<i64>> {
+    // If there is no Elf in the W, NW, or SW adjacent positions, the Elf proposes moving west one step.
+    if !has_neighbours.get(&Direction::WEST).unwrap()
+        && !has_neighbours.get(&Direction::SOUTH_WEST).unwrap()
+        && !has_neighbours.get(&Direction::NORTH_WEST).unwrap()
+    {
+        Some(point + Complex::new(-1, 0))
+    } else {
+        None
+    }
+}
+
+fn get_answer(grid: HashSet<Complex<i64>>) -> i64 {
+    let min_x = grid.iter().map(|p| p.re).min().unwrap();
+    let max_x = grid.iter().map(|p| p.re).max().unwrap();
+    let min_y = grid.iter().map(|p| p.im).min().unwrap();
+    let max_y = grid.iter().map(|p| p.im).max().unwrap();
     (max_x - min_x + 1) * (max_y - min_y + 1) - (grid.len() as i64)
 }
 
-fn print_grid(grid: &HashSet<Point>) {
-    let min_x = grid.iter().map(|p| p.x).min().unwrap();
-    let max_x = grid.iter().map(|p| p.x).max().unwrap();
-    let min_y = grid.iter().map(|p| p.y).min().unwrap();
-    let max_y = grid.iter().map(|p| p.y).max().unwrap();
+fn print_grid(grid: &HashSet<Complex<i64>>) {
+    let min_x = grid.iter().map(|p| p.re).min().unwrap();
+    let max_x = grid.iter().map(|p| p.re).max().unwrap();
+    let min_y = grid.iter().map(|p| p.im).min().unwrap();
+    let max_y = grid.iter().map(|p| p.im).max().unwrap();
     let mut grid_vec: Vec<Vec<char>> =
         vec![vec!['.'; (max_x - min_x + 1) as usize]; (max_y - min_y + 1) as usize];
     for point in grid.iter() {
-        grid_vec[(point.y - min_y) as usize][(point.x - min_x) as usize] = '#'
+        grid_vec[(point.im - min_y) as usize][(point.re - min_x) as usize] = '#'
     }
     for row in grid_vec {
         for char in row {
@@ -232,42 +113,49 @@ fn print_grid(grid: &HashSet<Point>) {
     }
 }
 
-fn simulate(contents: &str, num_rounds: usize) -> (HashSet<Point>, usize) {
-    let mut grid: HashSet<Point> = HashSet::new();
+fn simulate(contents: &str, num_rounds: usize) -> (HashSet<Complex<i64>>, usize) {
+    let mut grid: HashSet<Complex<i64>> = HashSet::new();
     for (y, line) in contents.lines().enumerate() {
         for (x, char) in line.chars().enumerate() {
             if char == '#' {
-                grid.insert(Point {
-                    x: x as i64,
-                    y: y as i64,
-                });
+                grid.insert(Complex::new(x as i64, y as i64));
             }
         }
     }
+    let num_elves = grid.len();
     let mut rounds_completed = 0;
     for round in 0..num_rounds {
-        let mut new_grid: HashSet<Point> = HashSet::new();
-        let mut new_point_counts: HashMap<Point, usize> = HashMap::new();
-        let mut potential_moves: HashMap<Point, Point> = HashMap::new();
+        let mut new_grid: HashSet<Complex<i64>> = HashSet::with_capacity(num_elves);
+        let mut new_point_counts: HashMap<Complex<i64>, usize> = HashMap::with_capacity(num_elves);
+        let mut potential_moves: HashMap<Complex<i64>, Complex<i64>> =
+            HashMap::with_capacity(num_elves);
+        let mut no_moves = 0;
 
         for point in grid.iter() {
-            let neighbours = point.neighbours();
+            let neighbours = neighbours(&point);
             let has_neighbours: HashMap<Direction, bool> =
                 HashMap::from_iter(neighbours.into_iter().map(|(d, p)| (d, grid.contains(&p))));
             let possible = if has_neighbours.iter().all(|(_, x)| !x) {
-                Some((Some(point.clone()), 0))
+                None
             } else {
-                let mut possibles: Vec<(Option<Point>, usize)> = Vec::new();
-                possibles.push(point.check_north(&has_neighbours, round));
-                possibles.push(point.check_south(&has_neighbours, round));
-                possibles.push(point.check_west(&has_neighbours, round));
-                possibles.push(point.check_east(&has_neighbours, round));
-                possibles.sort_by(|a, b| b.1.cmp(&a.1));
-                possibles.pop()
+                let possibles: Vec<Option<Complex<i64>>> = vec![
+                    check_north(&point, &has_neighbours),
+                    check_south(&point, &has_neighbours),
+                    check_west(&point, &has_neighbours),
+                    check_east(&point, &has_neighbours),
+                ];
+
+                possibles
+                    .into_iter()
+                    .cycle()
+                    .skip(round % 4)
+                    .take(4)
+                    .flatten()
+                    .next()
             };
 
             match possible {
-                Some((Some(new_point), _)) => {
+                Some(new_point) => {
                     new_point_counts
                         .entry(new_point)
                         .and_modify(|x| *x += 1)
@@ -275,22 +163,17 @@ fn simulate(contents: &str, num_rounds: usize) -> (HashSet<Point>, usize) {
                     potential_moves.insert(point.clone(), new_point.clone());
                 }
                 _ => {
-                    potential_moves.insert(point.clone(), point.clone());
+                    new_grid.insert(*point);
+                    no_moves += 1;
                 }
             }
         }
 
-        let mut no_moves = 0;
         for (point, other_point) in potential_moves {
-            if point == other_point {
-                // no move case
-                new_grid.insert(point);
-                no_moves += 1;
-                continue;
-            }
             match new_point_counts.get(&other_point) {
                 Some(c) if c > &1 => {
                     new_grid.insert(point);
+                    no_moves += 1;
                 }
                 Some(_) => {
                     new_grid.insert(other_point);
@@ -299,7 +182,7 @@ fn simulate(contents: &str, num_rounds: usize) -> (HashSet<Point>, usize) {
             }
         }
         rounds_completed += 1;
-        if no_moves == new_grid.len() {
+        if no_moves == num_elves {
             break;
         }
         grid = new_grid;
