@@ -1,4 +1,4 @@
-use advent_of_code_utils_rust::extended_euclidean_algorithm;
+use aoc_utils::number_theory::extended_euclidean_algorithm;
 use std::time::Instant;
 
 fn part_1(contents: &str) {

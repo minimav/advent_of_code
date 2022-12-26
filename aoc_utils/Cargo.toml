@@ -1,5 +1,5 @@
 [package]
-name = "advent_of_code_utils_rust"
+name = "aoc_utils"
 version = "0.1.0"
 edition = "2021"
 
