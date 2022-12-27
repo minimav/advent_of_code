@@ -1,4 +1,5 @@
 use num::PrimInt;
+use std::convert::identity;
 use std::fmt::{Display, Formatter, Result};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -39,6 +40,77 @@ impl<T: PrimInt + Default + Display> Point2D<T> {
             Some(y) => Some(Self { x: self.x, y }),
             None => None,
         }
+    }
+
+    fn right(&self) -> Option<Self> {
+        Some(Self {
+            x: self.x + T::one(),
+            y: self.y,
+        })
+    }
+
+    fn left(&self) -> Option<Self> {
+        match self.x.checked_sub(&T::one()) {
+            Some(x) => Some(Self { x, y: self.y }),
+            None => None,
+        }
+    }
+
+    fn up_right(&self) -> Option<Self> {
+        Some(Self {
+            x: self.x + T::one(),
+            y: self.y + T::one(),
+        })
+    }
+
+    fn up_left(&self) -> Option<Self> {
+        match self.x.checked_sub(&T::one()) {
+            Some(x) => Some(Self {
+                x,
+                y: self.y + T::one(),
+            }),
+            None => None,
+        }
+    }
+
+    fn down_right(&self) -> Option<Self> {
+        match self.y.checked_sub(&T::one()) {
+            Some(y) => Some(Self {
+                x: self.x + T::one(),
+                y,
+            }),
+            None => None,
+        }
+    }
+
+    fn down_left(&self) -> Option<Self> {
+        match (self.x.checked_sub(&T::one()), self.y.checked_sub(&T::one())) {
+            (Some(x), Some(y)) => Some(Self { x, y }),
+            _ => None,
+        }
+    }
+
+    fn adjacent_neighbours(&self) -> Vec<Self> {
+        vec![self.up(), self.right(), self.down(), self.left()]
+            .into_iter()
+            .filter_map(identity)
+            .collect::<Vec<_>>()
+    }
+
+    fn neighbours(&self) -> Vec<Self> {
+        vec![
+            self.up(),
+            self.up_right(),
+            self.right(),
+            self.down_right(),
+            self.down(),
+            self.down_left(),
+            self.left(),
+            self.up_left(),
+        ]
+        .into_iter()
+        .filter_map(identity)
+        .collect::<Vec<_>>()
     }
 }
 
@@ -98,5 +170,64 @@ mod tests {
     fn test_down_on_non_negative_int_type() {
         let point = Point2D::<usize>::default();
         assert_eq!(point.down(), None);
+    }
+
+    #[test]
+    fn test_left() {
+        let point = Point2D::<usize>::new(1, 1);
+        assert_eq!(point.left().unwrap(), Point2D::<usize>::new(0, 1));
+    }
+
+    #[test]
+    fn test_left_on_non_negative_int_type() {
+        let point = Point2D::<u16>::new(0, 5);
+        assert_eq!(point.left(), None);
+    }
+
+    #[test]
+    fn test_right() {
+        let point = Point2D::<usize>::new(1, 1);
+        assert_eq!(point.right().unwrap(), Point2D::<usize>::new(2, 1));
+    }
+
+    #[test]
+    fn test_adjacent_neighbours() {
+        let point = Point2D::<i8>::default();
+        let expected = vec![
+            Point2D::<i8>::new(0, 1),
+            Point2D::<i8>::new(1, 0),
+            Point2D::<i8>::new(0, -1),
+            Point2D::<i8>::new(-1, 0),
+        ];
+        assert_eq!(point.adjacent_neighbours(), expected);
+    }
+
+    #[test]
+    fn test_adjacent_neighbours_non_negative_type_origin() {
+        let point = Point2D::<u8>::default();
+        let expected = vec![Point2D::<u8>::new(0, 1), Point2D::<u8>::new(1, 0)];
+        assert_eq!(point.adjacent_neighbours(), expected);
+    }
+
+    #[test]
+    fn test_adjacent_neighbours_non_negative_type_x_axis() {
+        let point = Point2D::<u8>::new(7, 0);
+        let expected = vec![
+            Point2D::<u8>::new(7, 1),
+            Point2D::<u8>::new(8, 0),
+            Point2D::<u8>::new(6, 0),
+        ];
+        assert_eq!(point.adjacent_neighbours(), expected);
+    }
+
+    #[test]
+    fn test_adjacent_neighbours_non_negative_type_y_axis() {
+        let point = Point2D::<u32>::new(0, 3);
+        let expected = vec![
+            Point2D::<u32>::new(0, 4),
+            Point2D::<u32>::new(1, 3),
+            Point2D::<u32>::new(0, 2),
+        ];
+        assert_eq!(point.adjacent_neighbours(), expected);
     }
 }
