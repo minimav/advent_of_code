@@ -26,3 +26,6 @@ name = "puzzle_3"
 
 [[example]]
 name = "puzzle_4"
+
+[[example]]
+name = "puzzle_5"
