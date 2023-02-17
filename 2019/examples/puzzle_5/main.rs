@@ -32,7 +32,7 @@ impl IntCode {
         (opcode, parameter_modes)
     }
 
-    fn get_value(&self, index: usize, mode: &Mode) -> i32 {
+    fn get_value_at_index(&self, index: usize, mode: &Mode) -> i32 {
         match mode {
             Mode::IMMEDIATE => self.positions[index],
             Mode::PARAMETER => {
@@ -42,32 +42,36 @@ impl IntCode {
         }
     }
 
-    fn opcode_1(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
-        let value_1 = self.get_value(
-            *index + 1,
-            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
-        );
-        let value_2 = self.get_value(
-            *index + 2,
-            parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
-        );
-        let change_index = self.positions[*index + 3];
-        self.positions[change_index as usize] = value_1 + value_2;
-        *index += 4;
+    fn get_parameters(
+        &self,
+        index: usize,
+        num_parameters: usize,
+        parameter_modes: HashMap<usize, Mode>,
+    ) -> Vec<i32> {
+        (1..=num_parameters)
+            .map(|x| {
+                self.get_value_at_index(
+                    index + x,
+                    parameter_modes.get(&x).unwrap_or(&Mode::PARAMETER),
+                )
+            })
+            .collect()
     }
 
-    fn opcode_2(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
-        let value_1 = self.get_value(
-            *index + 1,
-            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
-        );
-        let value_2 = self.get_value(
-            *index + 2,
-            parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
-        );
-        let change_index = self.positions[*index + 3];
-        self.positions[change_index as usize] = value_1 * value_2;
-        *index += 4;
+    fn opcode_1(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+        let num_parameters = 3;
+        parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
+        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        self.positions[parameters[2] as usize] = parameters[0] + parameters[1];
+        *index += num_parameters + 1;
+    }
+
+    fn opcode_2(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+        let num_parameters = 3;
+        parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
+        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        self.positions[parameters[2] as usize] = parameters[0] * parameters[1];
+        *index += num_parameters + 1;
     }
 
     fn opcode_3(&mut self, index: &mut usize, input: i32) {
@@ -77,7 +81,7 @@ impl IntCode {
     }
 
     fn opcode_4(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) -> i32 {
-        let output = self.get_value(
+        let output = self.get_value_at_index(
             *index + 1,
             parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
         );
@@ -86,63 +90,39 @@ impl IntCode {
     }
 
     fn opcode_5(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
-        let first_parameter = self.get_value(
-            *index + 1,
-            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
-        );
-        if first_parameter > 0 {
-            let second_parameter = self.get_value(
-                *index + 2,
-                parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
-            ) as usize;
-            *index = second_parameter;
+        let num_parameters = 2;
+        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        if parameters[0] > 0 {
+            *index = parameters[1] as usize;
         } else {
-            *index += 3;
+            *index += num_parameters + 1;
         }
     }
 
     fn opcode_6(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
-        let first_parameter = self.get_value(
-            *index + 1,
-            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
-        );
-        if first_parameter == 0 {
-            let second_parameter = self.get_value(
-                *index + 2,
-                parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
-            ) as usize;
-            *index = second_parameter;
+        let num_parameters = 2;
+        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        if parameters[0] == 0 {
+            *index = parameters[1] as usize;
         } else {
-            *index += 3;
+            *index += num_parameters + 1;
         }
     }
 
-    fn opcode_7(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
-        let first_parameter = self.get_value(
-            *index + 1,
-            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
-        );
-        let second_parameter = self.get_value(
-            *index + 2,
-            parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
-        );
-        let third_parameter = self.positions[*index + 3] as usize;
-        self.positions[third_parameter] = (first_parameter < second_parameter) as i32;
-        *index += 4;
+    fn opcode_7(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+        let num_parameters = 3;
+        parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
+        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        self.positions[parameters[2] as usize] = (parameters[0] < parameters[1]) as i32;
+        *index += num_parameters + 1;
     }
 
-    fn opcode_8(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
-        let first_parameter = self.get_value(
-            *index + 1,
-            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
-        );
-        let second_parameter = self.get_value(
-            *index + 2,
-            parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
-        );
-        let third_parameter = self.positions[*index + 3] as usize;
-        self.positions[third_parameter] = (first_parameter == second_parameter) as i32;
-        *index += 4;
+    fn opcode_8(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+        let num_parameters = 3;
+        parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
+        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        self.positions[parameters[2] as usize] = (parameters[0] == parameters[1]) as i32;
+        *index += num_parameters + 1;
     }
 
     fn process(&mut self, input: i32) -> Option<i32> {
