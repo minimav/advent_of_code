@@ -85,13 +85,72 @@ impl IntCode {
         output
     }
 
-    fn process(&mut self) -> Option<i32> {
+    fn opcode_5(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
+        let first_parameter = self.get_value(
+            *index + 1,
+            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
+        );
+        if first_parameter > 0 {
+            let second_parameter = self.get_value(
+                *index + 2,
+                parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
+            ) as usize;
+            *index = second_parameter;
+        } else {
+            *index += 3;
+        }
+    }
+
+    fn opcode_6(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
+        let first_parameter = self.get_value(
+            *index + 1,
+            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
+        );
+        if first_parameter == 0 {
+            let second_parameter = self.get_value(
+                *index + 2,
+                parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
+            ) as usize;
+            *index = second_parameter;
+        } else {
+            *index += 3;
+        }
+    }
+
+    fn opcode_7(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
+        let first_parameter = self.get_value(
+            *index + 1,
+            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
+        );
+        let second_parameter = self.get_value(
+            *index + 2,
+            parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
+        );
+        let third_parameter = self.positions[*index + 3] as usize;
+        self.positions[third_parameter] = (first_parameter < second_parameter) as i32;
+        *index += 4;
+    }
+
+    fn opcode_8(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
+        let first_parameter = self.get_value(
+            *index + 1,
+            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
+        );
+        let second_parameter = self.get_value(
+            *index + 2,
+            parameter_modes.get(&2).unwrap_or(&Mode::PARAMETER),
+        );
+        let third_parameter = self.positions[*index + 3] as usize;
+        self.positions[third_parameter] = (first_parameter == second_parameter) as i32;
+        *index += 4;
+    }
+
+    fn process(&mut self, input: i32) -> Option<i32> {
         let mut index: usize = 0;
         let mut last_output: Option<i32> = None;
         loop {
             let raw_code = self.positions[index];
             let (opcode, parameter_modes) = IntCode::parse_opcode(raw_code);
-
             if opcode == 99 {
                 return last_output;
             } else if opcode == 1 {
@@ -99,7 +158,7 @@ impl IntCode {
             } else if opcode == 2 {
                 self.opcode_2(&mut index, parameter_modes);
             } else if opcode == 3 {
-                self.opcode_3(&mut index, 1);
+                self.opcode_3(&mut index, input);
             } else if opcode == 4 {
                 let next_output = self.opcode_4(&mut index, parameter_modes);
                 if last_output.is_some() && last_output.unwrap() > 0 {
@@ -107,6 +166,14 @@ impl IntCode {
                 } else {
                     last_output = Some(next_output)
                 }
+            } else if opcode == 5 {
+                self.opcode_5(&mut index, parameter_modes);
+            } else if opcode == 6 {
+                self.opcode_6(&mut index, parameter_modes);
+            } else if opcode == 7 {
+                self.opcode_7(&mut index, parameter_modes);
+            } else if opcode == 8 {
+                self.opcode_8(&mut index, parameter_modes);
             }
         }
     }
@@ -119,11 +186,17 @@ fn part_1(contents: &str) -> i32 {
         .collect();
 
     let mut intcode = IntCode { positions: input };
-    intcode.process().unwrap()
+    intcode.process(1).unwrap()
 }
 
-fn part_2(contents: &str) -> usize {
-    0
+fn part_2(contents: &str) -> i32 {
+    let input: Vec<i32> = contents
+        .split(",")
+        .map(|x| x.parse::<i32>().unwrap())
+        .collect();
+
+    let mut intcode = IntCode { positions: input };
+    intcode.process(5).unwrap()
 }
 
 #[cfg(test)]
@@ -148,9 +221,9 @@ mod tests {
         vec![1, 1, 1, 4, 99, 5, 6, 0, 99],
         vec![30, 1, 1, 4, 2, 5, 6, 0, 99]
     )]
-    fn test_opcodes_1_and_2(#[case] input: Vec<i32>, #[case] expected: Vec<i32>) {
-        let mut intcode = IntCode { positions: input };
-        intcode.process();
+    fn test_opcodes_1_and_2(#[case] positions: Vec<i32>, #[case] expected: Vec<i32>) {
+        let mut intcode = IntCode { positions };
+        intcode.process(1);
         assert_eq!(intcode.positions, expected);
     }
 
@@ -168,7 +241,7 @@ mod tests {
         let mut intcode = IntCode {
             positions: vec![1002, 4, 3, 4, 33],
         };
-        intcode.process();
+        intcode.process(1);
         assert_eq!(intcode.positions, vec![1002, 4, 3, 4, 99]);
     }
 
@@ -177,8 +250,104 @@ mod tests {
         let mut intcode = IntCode {
             positions: vec![1101, 100, -1, 4, 0],
         };
-        intcode.process();
+        intcode.process(1);
         assert_eq!(intcode.positions, vec![1101, 100, -1, 4, 99]);
+    }
+
+    #[rstest]
+    #[case(
+        vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8],
+        8,
+        1
+    )]
+    #[case(
+        vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8],
+        7,
+        0
+    )]
+    #[case(
+        vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8],
+        6,
+        1
+    )]
+    #[case(
+        vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8],
+        9,
+        0
+    )]
+    #[case(
+        vec![3, 3, 1108, -1, 8, 3, 4, 3, 99],
+        8,
+        1
+    )]
+    #[case(
+        vec![3, 3, 1108, -1, 8, 3, 4, 3, 99],
+        100,
+        0
+    )]
+    #[case(
+        vec![3, 3, 1107, -1, 8, 3, 4, 3, 99],
+        2,
+        1
+    )]
+    #[case(
+        vec![3, 3, 1107, -1, 8, 3, 4, 3, 99],
+        340,
+        0
+    )]
+    fn test_opcodes_7_and_8(
+        #[case] positions: Vec<i32>,
+        #[case] input: i32,
+        #[case] expected: i32,
+    ) {
+        let mut intcode = IntCode { positions };
+        assert_eq!(intcode.process(input).unwrap(), expected);
+    }
+
+    #[rstest]
+    #[case(
+        vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9],
+        0,
+        0
+    )]
+    #[case(
+        vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9],
+        1,
+        1
+    )]
+    #[case(
+        vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1],
+        0,
+        0
+    )]
+    #[case(
+        vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1],
+        34,
+        1
+    )]
+    fn test_opcodes_5_and_6(
+        #[case] positions: Vec<i32>,
+        #[case] input: i32,
+        #[case] expected: i32,
+    ) {
+        let mut intcode = IntCode { positions };
+        assert_eq!(intcode.process(input).unwrap(), expected);
+    }
+
+    #[rstest]
+    #[case(8, 1000)]
+    #[case(6, 999)]
+    #[case(9, 1001)]
+    fn test_larger_example(#[case] input: i32, #[case] expected: i32) {
+        let positions = vec![
+            3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36, 98, 0,
+            0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000, 1, 20, 4,
+            20, 1105, 1, 46, 98, 99,
+        ];
+        let mut intcode = IntCode {
+            positions: positions.clone(),
+        };
+        assert_eq!(intcode.process(input).unwrap(), expected);
     }
 }
 
