@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::time::Instant;
 
 use itertools::Itertools;
@@ -9,17 +9,33 @@ enum Mode {
     IMMEDIATE,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum Status {
+    CONTINUE,
+    TERMINATE,
+}
+
 #[derive(Debug)]
 struct ThrusterSignal {
     phase_settings: Vec<i64>,
     signal: i64,
 }
 
+#[derive(Debug)]
+struct Signal {
+    output: Option<i64>,
+    status: Status,
+}
+
 struct IntCode {
     memory: Vec<i64>,
+    index: usize,
 }
 
 impl IntCode {
+    fn from_memory(memory: Vec<i64>) -> Self {
+        IntCode { memory, index: 0 }
+    }
     fn parse_opcode(raw_code: i64) -> (i64, HashMap<usize, Mode>) {
         let mut parameter_modes: HashMap<usize, Mode> = HashMap::new();
         let opcode = raw_code % 100;
@@ -40,11 +56,15 @@ impl IntCode {
         (opcode, parameter_modes)
     }
 
-    fn get_value_at_index(&self, index: usize, mode: &Mode) -> i64 {
+    fn read_memory(&self, mode: &Mode, index: Option<usize>) -> i64 {
+        let memory_index = match index {
+            Some(i) => i,
+            None => self.index,
+        };
         match mode {
-            Mode::IMMEDIATE => self.memory[index],
+            Mode::IMMEDIATE => self.memory[memory_index],
             Mode::PARAMETER => {
-                let value_index = self.memory[index];
+                let value_index = self.memory[memory_index];
                 self.memory[value_index as usize]
             }
         }
@@ -52,85 +72,84 @@ impl IntCode {
 
     fn get_parameters(
         &self,
-        index: usize,
         num_parameters: usize,
         parameter_modes: HashMap<usize, Mode>,
     ) -> Vec<i64> {
         (1..=num_parameters)
             .map(|x| {
-                self.get_value_at_index(
-                    index + x,
+                self.read_memory(
                     parameter_modes.get(&x).unwrap_or(&Mode::PARAMETER),
+                    Some(self.index + x),
                 )
             })
             .collect()
     }
 
-    fn opcode_1(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_1(&mut self, mut parameter_modes: HashMap<usize, Mode>) {
         let num_parameters = 3;
         parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
-        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        let parameters = self.get_parameters(num_parameters, parameter_modes);
         self.memory[parameters[2] as usize] = parameters[0] + parameters[1];
-        *index += num_parameters + 1;
+        self.index += num_parameters + 1;
     }
 
-    fn opcode_2(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_2(&mut self, mut parameter_modes: HashMap<usize, Mode>) {
         let num_parameters = 3;
         parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
-        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        let parameters = self.get_parameters(num_parameters, parameter_modes);
         self.memory[parameters[2] as usize] = parameters[0] * parameters[1];
-        *index += num_parameters + 1;
+        self.index += num_parameters + 1;
     }
 
-    fn opcode_3(&mut self, index: &mut usize, input: i64) {
-        let change_index = self.memory[*index + 1];
+    fn opcode_3(&mut self, input: i64) {
+        let change_index = self.memory[self.index + 1];
         self.memory[change_index as usize] = input;
-        *index += 2
+        self.index += 2
     }
 
-    fn opcode_4(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) -> i64 {
-        let output = self.get_value_at_index(
-            *index + 1,
+    fn opcode_4(&mut self, parameter_modes: HashMap<usize, Mode>) -> i64 {
+        let output = self.read_memory(
             parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
+            Some(self.index + 1),
         );
-        *index += 2;
+        self.index += 2;
         output
     }
 
-    fn opcode_5(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_5(&mut self, parameter_modes: HashMap<usize, Mode>) {
         let num_parameters = 2;
-        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        let parameters = self.get_parameters(num_parameters, parameter_modes);
         if parameters[0] > 0 {
-            *index = parameters[1] as usize;
+            self.index = parameters[1] as usize;
         } else {
-            *index += num_parameters + 1;
+            self.index += num_parameters + 1;
         }
     }
 
-    fn opcode_6(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_6(&mut self, parameter_modes: HashMap<usize, Mode>) {
         let num_parameters = 2;
-        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        let parameters = self.get_parameters(num_parameters, parameter_modes);
         if parameters[0] == 0 {
-            *index = parameters[1] as usize;
+            self.index = parameters[1] as usize;
         } else {
-            *index += num_parameters + 1;
+            self.index += num_parameters + 1;
         }
     }
 
-    fn opcode_7(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_7(&mut self, mut parameter_modes: HashMap<usize, Mode>) {
         let num_parameters = 3;
         parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
-        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        let parameters = self.get_parameters(num_parameters, parameter_modes);
         self.memory[parameters[2] as usize] = (parameters[0] < parameters[1]) as i64;
-        *index += num_parameters + 1;
+        self.index += num_parameters + 1;
     }
 
-    fn opcode_8(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_8(&mut self, mut parameter_modes: HashMap<usize, Mode>) {
         let num_parameters = 3;
         parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
-        let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
+        let parameters = self.get_parameters(num_parameters, parameter_modes);
         self.memory[parameters[2] as usize] = (parameters[0] == parameters[1]) as i64;
-        *index += num_parameters + 1;
+        self.index += num_parameters + 1;
     }
 
     fn max_thruster_signal(memory: Vec<i64>) -> ThrusterSignal {
@@ -141,12 +160,15 @@ impl IntCode {
 
         for phase_settings in (0..=4).permutations(5) {
             let mut output = 0;
+            let mut inputs: VecDeque<i64> = VecDeque::new();
             for phase in phase_settings.iter() {
                 let mut intcode = IntCode {
                     memory: memory.clone(),
+                    index: 0,
                 };
-                let inputs = vec![*phase, output];
-                output = intcode.process(inputs).unwrap();
+                inputs.push_back(*phase);
+                inputs.push_back(output);
+                output = intcode.process(&mut inputs);
             }
 
             if output > max_thruster_signal.signal {
@@ -160,43 +182,121 @@ impl IntCode {
     }
 
     fn max_thruster_signal_with_feedback(memory: Vec<i64>) -> ThrusterSignal {
-        ThrusterSignal {
+        let mut max_thruster_signal = ThrusterSignal {
             phase_settings: vec![],
             signal: i64::MIN,
+        };
+        let num_amplifiers: i64 = 5;
+        for phase_settings in (5..5 + num_amplifiers).permutations(num_amplifiers as usize) {
+            let mut amplifiers: Vec<IntCode> = (0..num_amplifiers)
+                .map(|_| IntCode::from_memory(memory.clone()))
+                .collect();
+
+            let mut amplifier_index: usize = 0;
+            let mut inputs: Vec<VecDeque<i64>> = vec![VecDeque::new(); num_amplifiers as usize];
+
+            // prime the inputs
+            for (index, phase) in phase_settings.iter().enumerate() {
+                inputs[index].push_back(*phase);
+            }
+            inputs[0].push_back(0);
+
+            let mut output_signal = 0;
+            loop {
+                let signal = amplifiers[amplifier_index as usize]
+                    .process_to_output_or_terminate(&mut inputs[amplifier_index as usize]);
+
+                // update the output if there was some
+                amplifier_index = (amplifier_index + 1) % (num_amplifiers as usize);
+                match signal.output {
+                    Some(output) => {
+                        output_signal = output;
+                        inputs[amplifier_index as usize].push_back(output);
+                    }
+                    _ => {}
+                }
+
+                // exit gracefully if the final amplifier had a terminate status
+                // we've already changed the amplifier index, so check takes
+                // that into account
+                if amplifier_index == 0 as usize {
+                    match signal.status {
+                        Status::TERMINATE => break,
+                        _ => {}
+                    }
+                }
+            }
+
+            // override maximum signal if these phase settings are better
+            if output_signal > max_thruster_signal.signal {
+                max_thruster_signal = ThrusterSignal {
+                    phase_settings,
+                    signal: output_signal,
+                };
+            }
+        }
+        max_thruster_signal
+    }
+
+    fn process_op(&mut self, inputs: &mut VecDeque<i64>) -> Signal {
+        let raw_code = self.memory[self.index];
+        let (opcode, parameter_modes) = IntCode::parse_opcode(raw_code);
+        let mut output = None;
+        let mut status = Status::CONTINUE;
+        if opcode == 99 {
+            status = Status::TERMINATE;
+        } else if opcode == 1 {
+            self.opcode_1(parameter_modes);
+        } else if opcode == 2 {
+            self.opcode_2(parameter_modes);
+        } else if opcode == 3 {
+            let input = inputs.pop_front().unwrap();
+            self.opcode_3(input);
+        } else if opcode == 4 {
+            output = Some(self.opcode_4(parameter_modes));
+        } else if opcode == 5 {
+            self.opcode_5(parameter_modes);
+        } else if opcode == 6 {
+            self.opcode_6(parameter_modes);
+        } else if opcode == 7 {
+            self.opcode_7(parameter_modes);
+        } else if opcode == 8 {
+            self.opcode_8(parameter_modes);
+        }
+        Signal { output, status }
+    }
+
+    fn process_to_output_or_terminate(&mut self, inputs: &mut VecDeque<i64>) -> Signal {
+        loop {
+            let signal = self.process_op(inputs);
+            match signal {
+                Signal {
+                    status: Status::TERMINATE,
+                    ..
+                }
+                | Signal {
+                    output: Some(_), ..
+                } => return signal,
+                _ => {}
+            }
         }
     }
 
-    fn process(&mut self, inputs: Vec<i64>) -> Option<i64> {
-        let mut index: usize = 0;
-        let mut input_index: usize = 0;
-        let mut last_output: Option<i64> = None;
+    fn process(&mut self, inputs: &mut VecDeque<i64>) -> i64 {
+        let mut output = 0;
         loop {
-            let raw_code = self.memory[index];
-            let (opcode, parameter_modes) = IntCode::parse_opcode(raw_code);
-            if opcode == 99 {
-                return last_output;
-            } else if opcode == 1 {
-                self.opcode_1(&mut index, parameter_modes);
-            } else if opcode == 2 {
-                self.opcode_2(&mut index, parameter_modes);
-            } else if opcode == 3 {
-                self.opcode_3(&mut index, inputs[input_index]);
-                input_index += 1;
-            } else if opcode == 4 {
-                let next_output = self.opcode_4(&mut index, parameter_modes);
-                if last_output.is_some() && last_output.unwrap() > 0 {
-                    panic!("Diagnostic test failed")
-                } else {
-                    last_output = Some(next_output)
-                }
-            } else if opcode == 5 {
-                self.opcode_5(&mut index, parameter_modes);
-            } else if opcode == 6 {
-                self.opcode_6(&mut index, parameter_modes);
-            } else if opcode == 7 {
-                self.opcode_7(&mut index, parameter_modes);
-            } else if opcode == 8 {
-                self.opcode_8(&mut index, parameter_modes);
+            let signal = self.process_op(inputs);
+            match signal.status {
+                Status::TERMINATE => return output,
+                Status::CONTINUE => match signal.output {
+                    Some(new_output) => {
+                        if output > 0 {
+                            panic!("Diagnostic test failed")
+                        }
+                        output = new_output;
+                    }
+                    None => {}
+                },
             }
         }
     }
@@ -218,7 +318,7 @@ fn part_2(contents: &str) -> i64 {
         .map(|x| x.parse::<i64>().unwrap())
         .collect();
 
-    let max_thruster_signal = IntCode::max_thruster_signal(input);
+    let max_thruster_signal = IntCode::max_thruster_signal_with_feedback(input);
     max_thruster_signal.signal
 }
 
@@ -245,8 +345,8 @@ mod tests {
         vec![30, 1, 1, 4, 2, 5, 6, 0, 99]
     )]
     fn test_opcodes_1_and_2(#[case] memory: Vec<i64>, #[case] expected: Vec<i64>) {
-        let mut intcode = IntCode { memory };
-        intcode.process(vec![1]);
+        let mut intcode = IntCode { memory, index: 0 };
+        intcode.process(&mut VecDeque::from(vec![1]));
         assert_eq!(intcode.memory, expected);
     }
 
@@ -263,8 +363,9 @@ mod tests {
     fn test_process_after_parsing_opcode() {
         let mut intcode = IntCode {
             memory: vec![1002, 4, 3, 4, 33],
+            index: 0,
         };
-        intcode.process(vec![1]);
+        intcode.process(&mut VecDeque::from(vec![1]));
         assert_eq!(intcode.memory, vec![1002, 4, 3, 4, 99]);
     }
 
@@ -272,8 +373,9 @@ mod tests {
     fn test_negative_entry() {
         let mut intcode = IntCode {
             memory: vec![1101, 100, -1, 4, 0],
+            index: 0,
         };
-        intcode.process(vec![1]);
+        intcode.process(&mut VecDeque::from(vec![1]));
         assert_eq!(intcode.memory, vec![1101, 100, -1, 4, 99]);
     }
 
@@ -319,8 +421,9 @@ mod tests {
         0
     )]
     fn test_opcodes_7_and_8(#[case] memory: Vec<i64>, #[case] input: i64, #[case] expected: i64) {
-        let mut intcode = IntCode { memory };
-        assert_eq!(intcode.process(vec![input]).unwrap(), expected);
+        let mut intcode = IntCode { memory, index: 0 };
+        let mut inputs = VecDeque::from(vec![input]);
+        assert_eq!(intcode.process(&mut inputs), expected);
     }
 
     #[rstest]
@@ -345,8 +448,9 @@ mod tests {
         1
     )]
     fn test_opcodes_5_and_6(#[case] memory: Vec<i64>, #[case] input: i64, #[case] expected: i64) {
-        let mut intcode = IntCode { memory };
-        assert_eq!(intcode.process(vec![input]).unwrap(), expected);
+        let mut intcode = IntCode { memory, index: 0 };
+        let mut inputs = VecDeque::from(vec![input]);
+        assert_eq!(intcode.process(&mut inputs), expected);
     }
 
     #[rstest]
@@ -361,8 +465,10 @@ mod tests {
         ];
         let mut intcode = IntCode {
             memory: memory.clone(),
+            index: 0,
         };
-        assert_eq!(intcode.process(vec![input]).unwrap(), expected);
+        let mut inputs = VecDeque::from(vec![input]);
+        assert_eq!(intcode.process(&mut inputs), expected);
     }
 
     #[rstest]
@@ -400,8 +506,8 @@ mod tests {
     #[rstest]
     #[case(
         vec![
-            3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26, 27,4,27,1001,28,-1,
-            28,1005,28,6,99,0,0,5
+            3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,
+            1005,28,6,99,0,0,5
         ],
         vec![9, 8, 7, 6, 5],
         139629729
