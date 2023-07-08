@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 #[derive(Debug, PartialEq, Eq)]
-enum Mode {
-    PARAMETER,
+enum ParameterMode {
+    POSITION,
     IMMEDIATE,
 }
 
@@ -12,8 +12,8 @@ struct IntCode {
 }
 
 impl IntCode {
-    fn parse_opcode(raw_code: i32) -> (i32, HashMap<usize, Mode>) {
-        let mut parameter_modes: HashMap<usize, Mode> = HashMap::new();
+    fn parse_opcode(raw_code: i32) -> (i32, HashMap<usize, ParameterMode>) {
+        let mut parameter_modes: HashMap<usize, ParameterMode> = HashMap::new();
         let opcode = raw_code % 100;
 
         let mut mode_digits = (raw_code - opcode) / 100;
@@ -22,9 +22,9 @@ impl IntCode {
             let digit = mode_digits % 10;
             mode_digits = (mode_digits - digit) / 10;
             let mode = match digit {
-                0 => Mode::PARAMETER,
-                1 => Mode::IMMEDIATE,
-                _ => panic!("Mode digit should only be 0 or 1"),
+                0 => ParameterMode::POSITION,
+                1 => ParameterMode::IMMEDIATE,
+                _ => panic!("ParameterMode digit should only be 0 or 1"),
             };
             parameter_modes.insert(offset, mode);
             offset += 1
@@ -32,10 +32,10 @@ impl IntCode {
         (opcode, parameter_modes)
     }
 
-    fn get_value_at_index(&self, index: usize, mode: &Mode) -> i32 {
+    fn get_value_at_index(&self, index: usize, mode: &ParameterMode) -> i32 {
         match mode {
-            Mode::IMMEDIATE => self.positions[index],
-            Mode::PARAMETER => {
+            ParameterMode::IMMEDIATE => self.positions[index],
+            ParameterMode::POSITION => {
                 let value_index = self.positions[index];
                 self.positions[value_index as usize]
             }
@@ -46,29 +46,29 @@ impl IntCode {
         &self,
         index: usize,
         num_parameters: usize,
-        parameter_modes: HashMap<usize, Mode>,
+        parameter_modes: HashMap<usize, ParameterMode>,
     ) -> Vec<i32> {
         (1..=num_parameters)
             .map(|x| {
                 self.get_value_at_index(
                     index + x,
-                    parameter_modes.get(&x).unwrap_or(&Mode::PARAMETER),
+                    parameter_modes.get(&x).unwrap_or(&ParameterMode::POSITION),
                 )
             })
             .collect()
     }
 
-    fn opcode_1(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_1(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, ParameterMode>) {
         let num_parameters = 3;
-        parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
+        parameter_modes.entry(3).or_insert(ParameterMode::IMMEDIATE);
         let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
         self.positions[parameters[2] as usize] = parameters[0] + parameters[1];
         *index += num_parameters + 1;
     }
 
-    fn opcode_2(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_2(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, ParameterMode>) {
         let num_parameters = 3;
-        parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
+        parameter_modes.entry(3).or_insert(ParameterMode::IMMEDIATE);
         let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
         self.positions[parameters[2] as usize] = parameters[0] * parameters[1];
         *index += num_parameters + 1;
@@ -80,16 +80,20 @@ impl IntCode {
         *index += 2
     }
 
-    fn opcode_4(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) -> i32 {
+    fn opcode_4(
+        &mut self,
+        index: &mut usize,
+        parameter_modes: HashMap<usize, ParameterMode>,
+    ) -> i32 {
         let output = self.get_value_at_index(
             *index + 1,
-            parameter_modes.get(&1).unwrap_or(&Mode::PARAMETER),
+            parameter_modes.get(&1).unwrap_or(&ParameterMode::POSITION),
         );
         *index += 2;
         output
     }
 
-    fn opcode_5(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_5(&mut self, index: &mut usize, parameter_modes: HashMap<usize, ParameterMode>) {
         let num_parameters = 2;
         let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
         if parameters[0] > 0 {
@@ -99,7 +103,7 @@ impl IntCode {
         }
     }
 
-    fn opcode_6(&mut self, index: &mut usize, parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_6(&mut self, index: &mut usize, parameter_modes: HashMap<usize, ParameterMode>) {
         let num_parameters = 2;
         let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
         if parameters[0] == 0 {
@@ -109,17 +113,17 @@ impl IntCode {
         }
     }
 
-    fn opcode_7(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_7(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, ParameterMode>) {
         let num_parameters = 3;
-        parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
+        parameter_modes.entry(3).or_insert(ParameterMode::IMMEDIATE);
         let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
         self.positions[parameters[2] as usize] = (parameters[0] < parameters[1]) as i32;
         *index += num_parameters + 1;
     }
 
-    fn opcode_8(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, Mode>) {
+    fn opcode_8(&mut self, index: &mut usize, mut parameter_modes: HashMap<usize, ParameterMode>) {
         let num_parameters = 3;
-        parameter_modes.entry(3).or_insert(Mode::IMMEDIATE);
+        parameter_modes.entry(3).or_insert(ParameterMode::IMMEDIATE);
         let parameters = self.get_parameters(*index, num_parameters, parameter_modes);
         self.positions[parameters[2] as usize] = (parameters[0] == parameters[1]) as i32;
         *index += num_parameters + 1;
@@ -209,10 +213,13 @@ mod tests {
 
     #[rstest]
     #[case(99, (99, HashMap::new()))]
-    #[case(101, (1, [(1, Mode::IMMEDIATE)].into_iter().collect()))]
-    #[case(1003, (3, [(1, Mode::PARAMETER), (2, Mode::IMMEDIATE)].into_iter().collect()))]
-    #[case(10104, (4, [(1, Mode::IMMEDIATE), (2, Mode::PARAMETER), (3, Mode::IMMEDIATE)].into_iter().collect()))]
-    fn test_parse_opcodes(#[case] raw_code: i32, #[case] expected: (i32, HashMap<usize, Mode>)) {
+    #[case(101, (1, [(1, ParameterMode::IMMEDIATE)].into_iter().collect()))]
+    #[case(1003, (3, [(1, ParameterMode::POSITION), (2, ParameterMode::IMMEDIATE)].into_iter().collect()))]
+    #[case(10104, (4, [(1, ParameterMode::IMMEDIATE), (2, ParameterMode::POSITION), (3, ParameterMode::IMMEDIATE)].into_iter().collect()))]
+    fn test_parse_opcodes(
+        #[case] raw_code: i32,
+        #[case] expected: (i32, HashMap<usize, ParameterMode>),
+    ) {
         assert_eq!(IntCode::parse_opcode(raw_code), expected);
     }
 
