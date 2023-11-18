@@ -2,3 +2,4 @@
 .vscode/
 *.tmp
 **/target/*
+.DS_Store
