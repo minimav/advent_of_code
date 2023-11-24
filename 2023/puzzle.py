@@ -1,7 +1,10 @@
+def function(input: str):
+    print(input)
 
-
-def function():
-    print("Puzzle")
 
 if __name__ == "__main__":
-    function()
+    with open("example.txt", "r") as f:
+        function(f.read())
+
+    with open("input.txt", "r") as f:
+        function(f.read())

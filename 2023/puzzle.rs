@@ -1,3 +1,10 @@
+fn puzzle(input: &str) {
+    println!("{}", input);
+}
+
 fn main() {
-    println!("Puzzle");
+    let example = include_str!("example.txt");
+    puzzle(example);
+    let input = include_str!("input.txt");
+    puzzle(input);
 }

@@ -1,2 +1,9 @@
+const { readFileSync } = require('fs')
+ 
+function puzzle(input) {
+  console.log(input);
+}
 
-console.log("Puzzle")
+puzzle(readFileSync('example.txt', 'utf8'))
+puzzle(readFileSync('input.txt', 'utf8'))
+    

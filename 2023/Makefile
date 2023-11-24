@@ -30,7 +30,7 @@ go:
 
 java:
 	javac -d build/ Puzzle.java
-	java -p build Puzzle
+	cd build; java Puzzle
 
 scala:
 	scala puzzle.scala
