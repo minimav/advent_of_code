@@ -9,17 +9,17 @@ Perl
 
 #### Group 2:
 Clojure
-Elixir
-Dart
+Elixir ✔️
+Dart ✔️
 Zig
-Swift
+Swift ✔️
 
 #### Group 3:
-R
+R ✔️
 C++
-C#
-C
-Ruby
+C# ✔️
+C 
+Ruby ✔️
 
 #### Group 4:
 Go ✔️ 
