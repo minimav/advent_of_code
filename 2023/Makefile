@@ -75,7 +75,7 @@ csharp:
 	dotnet script puzzle.cs
 
 haskell:
-	ghc -o build/puzzle_haskell puzzle.hs
+	ghc -o build/puzzle_haskell puzzle_1/puzzle.hs
 	./build/puzzle_haskell
 
 dart:
