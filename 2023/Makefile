@@ -59,7 +59,7 @@ clojure:
 	clj puzzle.clj
 
 fsharp:
-	dotnet fsi puzzle.fsx
+	dotnet fsi puzzle_3/puzzle.fsx
 
 swift:
 	swiftc -o build/puzzle_swift puzzle.swift
