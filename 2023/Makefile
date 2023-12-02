@@ -66,7 +66,7 @@ swift:
 	./build/puzzle_swift
 
 erlang:
-	erlc -o build puzzle.erl
+	erlc -o build puzzle_2/puzzle.erl
 	cd build; erl
 	# Run this in Erlang interpreter
 	puzzle:solve_puzzle().
