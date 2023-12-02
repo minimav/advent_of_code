@@ -69,7 +69,7 @@ erlang:
 	erlc -o build puzzle_2/puzzle.erl
 	cd build; erl
 	# Run this in Erlang interpreter
-	puzzle:solve_puzzle().
+	puzzle:solvePuzzles().
 
 csharp:
 	dotnet script puzzle.cs
