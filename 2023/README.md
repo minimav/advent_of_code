@@ -1,35 +1,36 @@
-Rough plan of groups of ~5, starting from hardest to easiest. ✔️ means setup includes file reading.
+Rough plan of groups of ~5, starting from hardest to easiest. ✔️ means done.
 
 #### Group 1:
-Haskell
-Erlang
-F#
+Haskell✔️
+Erlang✔️
+F#✔️
 Lisp
 Perl
 
 #### Group 2:
 Clojure
-Elixir ✔️
-Dart ✔️
+Elixir
+Dart
 Zig
-Swift ✔️
+C++
 
 #### Group 3:
-R ✔️
-C++
-C# ✔️
+R
+Swift
+C#
 C 
-Ruby ✔️
+Ruby
 
 #### Group 4:
-Go ✔️ 
-Kotlin ✔️
-Julia ✔️
-Java ✔️
+Java
+Go 
+Kotlin
+Julia
+
 
 #### Group 5:
-Scala ✔️
-Rust ✔️
-Javascript ✔️
-Typescript ✔️
-Python ✔️
+Scala
+Rust
+Javascript
+Typescript
+Python
