@@ -18,7 +18,7 @@ ruby:
 	ruby puzzle.rb
 
 c++:
-	g++ puzzle.cpp -o build/puzzle_cpp
+	g++ puzzle_4/puzzle.cpp -o build/puzzle_cpp
 	./build/puzzle_cpp
 
 c:

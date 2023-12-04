@@ -4,15 +4,15 @@ Rough plan of groups of ~5, starting from hardest to easiest. ✔️ means done.
 Haskell✔️
 Erlang✔️
 F#✔️
+C++✔️
 Lisp
-Perl
 
 #### Group 2:
 Clojure
 Elixir
 Dart
 Zig
-C++
+Perl
 
 #### Group 3:
 R
@@ -26,7 +26,6 @@ Java
 Go 
 Kotlin
 Julia
-
 
 #### Group 5:
 Scala
