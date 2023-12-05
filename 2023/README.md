@@ -33,3 +33,15 @@ Rust
 Javascript
 Typescript
 Python
+
+#### Subs Bench:
+Racket
+Odin
+Crystal
+SQL
+PHP
+Pascal
+Objective C
+Bash
+Lua
+Nim
