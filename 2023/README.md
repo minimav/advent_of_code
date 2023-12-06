@@ -1,33 +1,30 @@
-Rough plan of groups of ~5, starting from hardest to easiest. ✔️ means done.
+Rough plan of groups, starting from hardest to easiest.
 
-#### Group 1:
-Haskell✔️
-Erlang✔️
-F#✔️
-C++✔️
+1. Haskell
+2. Erlang
+3. F#
+4. C++
+5. (Python)
+6. SQL
+-----------
 Lisp
-
-#### Group 2:
 Clojure
 Elixir
 Dart
 Zig
 Perl
-
-#### Group 3:
+-----------
 R
 Swift
 C#
 C 
 Ruby
-
-#### Group 4:
+-----------
 Java
 Go 
 Kotlin
 Julia
-
-#### Group 5:
+-----------
 Scala
 Rust
 Javascript
@@ -38,7 +35,6 @@ Python
 Racket
 Odin
 Crystal
-SQL
 PHP
 Pascal
 Objective C
