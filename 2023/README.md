@@ -6,38 +6,39 @@ Rough plan of groups, starting from hardest to easiest.
 4. C++
 5. (Python)
 6. SQL
------------
-Lisp
-Clojure
-Elixir
-Dart
-Zig
-Perl
------------
-R
-Swift
-C#
-C 
-Ruby
------------
-Java
-Go 
-Kotlin
-Julia
------------
-Scala
-Rust
-Javascript
-Typescript
-Python
+7. Lisp
+
+* Clojure
+* Elixir
+* Dart
+* Zig
+* Perl
+
+* R
+* Swift
+* C#
+* C 
+* Ruby
+
+* Java
+* Go 
+* Kotlin
+* Julia
+
+* Scala
+* Rust
+* Javascript
+* Typescript
+* Python
 
 #### Subs Bench:
-Racket
-Odin
-Crystal
-PHP
-Pascal
-Objective C
-Bash
-Lua
-Nim
+
+* Racket
+* Odin
+* Crystal
+* PHP
+* Pascal
+* Objective C
+* Bash
+* Lua
+* Nim
