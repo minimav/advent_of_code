@@ -47,7 +47,7 @@ typescript:
 	node build/puzzle.js
 
 lisp:
-	sbcl --script puzzle.lsp
+	sbcl --script puzzle_7/puzzle.lsp
 
 elixir:
 	elixir puzzle.exs
