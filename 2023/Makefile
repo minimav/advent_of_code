@@ -56,7 +56,7 @@ zig:
 	./puzzle.zig
 
 clojure:
-	clj puzzle.clj
+	clj puzzle_5/puzzle.clj
 
 fsharp:
 	dotnet fsi puzzle_3/puzzle.fsx
