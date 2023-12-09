@@ -1,6 +1,8 @@
 (ns clojure.examples.puzzle
   (:gen-class))
 
+(require '[clojure.string :as str])
+
 ; Intersect two inclusive interger-valued ranges (each of 2 elements)
 (defn intersect [range other]
   (if (empty? range) [[] [] []]
@@ -82,10 +84,73 @@
   (apply min (map first seed-ranges)))
 )
 
-(defn solve-puzzle []
-   ;;(def example (slurp "puzzle_5/example.txt"))
-   ;;(println example)
+(defn read-lines [file-path]
+  (with-open [reader (clojure.java.io/reader file-path)]
+  (doall (line-seq reader)))
+)
 
-   ;(def input (slurp "puzzle_5/input.txt"))
-   ;(println input)
+(defn split-and-parse-ints [values]
+  (map #(bigint %) (str/split values (re-pattern (str "\\" " "))))
+)
+
+(defn single-to-interval [seed]
+  [seed seed])
+
+(defn pair-to-interval [seeds]
+  (let [
+    start (first seeds)
+    length (second seeds)
+  ]
+  [start (- (+ start length) 1)]))
+
+(defn part-1-range-parse [line]
+  (let [sliced (subs line 7)
+    raw-seeds (split-and-parse-ints sliced)]
+    (map single-to-interval raw-seeds))
+)
+
+(defn part-2-range-parse [line]
+  (let [sliced (subs line 7)
+    raw-seeds (split-and-parse-ints sliced)]
+    (map pair-to-interval (partition 2 2 raw-seeds)))
+)
+
+(defn add-translation-range [translation-layer line]
+  (let [
+    [dest-start source-start length] (split-and-parse-ints line)
+    translation-range [[source-start (- (+ source-start length) 1)] [dest-start (- (+ dest-start length) 1)]]
+  ]
+  (conj translation-layer translation-range))
+)
+
+(defn parse-line [current-layers line]
+   (cond
+     (empty? line) current-layers
+     (str/includes? line "map") (conj current-layers [])
+     :else (conj (vec (butlast current-layers)) (add-translation-range (last current-layers) line)))
+)
+
+; Parse translations tables, making sure source ranges are in ascending order
+(defn parse-translations [lines]
+  (let [
+    translations (reduce (fn [current-layers line] (parse-line current-layers line)) [] lines)
+  ]
+  (map (partial sort-by first) translations))
+)
+
+
+(defn solve-puzzle []
+   (def example (read-lines "puzzle_5/example.txt"))
+   (println (part-1-range-parse (first example)))
+   (println (part-2-range-parse (first example)))
+   (println(parse-translations (rest example)))
+
+   ; Should be 35
+   (println (get-min-seed (parse-translations (rest example)) (part-1-range-parse (first example))))
+   ; Should be 46
+   (println (get-min-seed (parse-translations (rest example)) (part-2-range-parse (first example))))
+
+   (def input (read-lines "puzzle_5/input.txt"))
+   (println (get-min-seed (parse-translations (rest input)) (part-1-range-parse (first input))))
+   (println (get-min-seed (parse-translations (rest input)) (part-2-range-parse (first input))))
 )(solve-puzzle)
