@@ -50,7 +50,7 @@ lisp:
 	sbcl --script puzzle_7/puzzle.lsp
 
 elixir:
-	elixir puzzle.exs
+	elixir puzzle_8/puzzle.exs
 
 zig:
 	./puzzle.zig

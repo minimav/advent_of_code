@@ -4,12 +4,13 @@ Rough plan of groups, starting from hardest to easiest.
 2. Erlang
 3. F#
 4. C++
-5. Clojure (Python)
+5. Clojure
 6. SQL
 7. Lisp
-8. (Python)
+8. Elixir
+9. 
+10.
 
-* Elixir
 * Dart
 * Zig
 * Perl
