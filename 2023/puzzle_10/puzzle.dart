@@ -165,24 +165,6 @@ Location getMovement(Location start, List<String> pipes) {
   throw Exception('No valid movement found from start location');
 }
 
-void part1(var input) {
-  List<String> pipes = input.split('\n');
-  Location start = findStart(pipes);
-
-  // Moving from the start is a special case of general movement
-  Location previous = start;
-  Location current = getMovement(start, pipes);
-
-  int numMoves = 1;
-  while (current != start) {
-    Location next = move(previous, current, pipes);
-    previous = current;
-    current = next;
-    numMoves++;
-  }  
-  print(numMoves / 2);
-}
-
 Set<Location> buildPath(Location start, List<String> pipes) {
   // Moving from the start is a special case of general movement
   Location previous = start;
@@ -198,8 +180,27 @@ Set<Location> buildPath(Location start, List<String> pipes) {
   return path;
 }
 
-Set<Location> flood(List<String> pipes, Set<Location> path, Set<Location> contained, Location start) {
-  Set<Location> toCheck = {start};
+void part1(var input) {
+  List<String> pipes = input.split('\n');
+  Location start = findStart(pipes);
+
+  Set<Location> path = buildPath(start, pipes);
+  print('Furthest point: ${(path.length / 2).toInt()}');
+}
+
+Set<Location> flood(List<String> pipes, Set<Location> path, Set<Location> contained, Set<Location> starts) {
+  int numRows = pipes.length;
+  int numCols = pipes[0].length;
+
+  Set<Location> toCheck = Set();
+  for (var start in starts) {
+    // Tracker is out of bounds, so ignore
+    if (start.row < 0 || start.row >= numRows || start.column < 0 || start.column >= numCols) {
+      continue;
+    }
+    toCheck.add(start);
+  }
+  
   Set<Location> checked = Set();
   while (toCheck.isNotEmpty) {
     Location current = toCheck.first;
@@ -214,23 +215,66 @@ Set<Location> flood(List<String> pipes, Set<Location> path, Set<Location> contai
   return contained;
 }
 
-// Maintain a tracking location that keeps on the same 'side' of the path at all times
-Location getNextTracker(Location current, Location next) {
+Set<Location> getLeftTracker(Location current, Location next) {
   if (current.row == next.row) {
     if (current.column < next.column) {
-      // Moved right, so tracker is one above next
-      return Location(next.row - 1, next.column);
+      // Moved right, so tracker is one above
+      return {
+        Location(next.row - 1, next.column),
+        Location(current.row - 1, current.column),
+      };
     } else {
-      // Moved left, so tracker is one below next
-      return Location(next.row + 1, next.column);
+      // Moved left, so tracker is one below
+      return {
+        Location(next.row + 1, next.column),
+        Location(current.row + 1, current.column),
+      };
     }
   } else {
     if (current.row < next.row) {
-      // Moved down, so tracker is one to the left of next
-      return Location(next.row , next.column + 1);
+      // Moved down, so tracker is one to the right
+      return {
+        Location(next.row , next.column + 1),
+        Location(current.row , current.column + 1),
+      };
     } else {
-      // Moved up so tracker is one to the right of next
-      return Location(next.row, next.column - 1);
+      // Moved up so tracker is one to the left
+      return {
+        Location(next.row, next.column - 1),
+        Location(current.row, current.column - 1),
+      };
+    }
+  }
+}
+
+Set<Location> getRightTracker(Location current, Location next) {
+  if (current.row == next.row) {
+    if (current.column < next.column) {
+      // Moved right, so tracker is one below
+      return {
+        Location(next.row + 1, next.column),
+        Location(current.row + 1, current.column),
+      };
+    } else {
+      // Moved left, so tracker is one above
+      return {
+        Location(next.row - 1, next.column),
+        Location(current.row - 1, current.column),
+      };
+    }
+  } else {
+    if (current.row < next.row) {
+      // Moved down, so tracker is one to the left
+      return {
+        Location(next.row , next.column - 1),
+        Location(current.row , current.column - 1),
+      };
+    } else {
+      // Moved up so tracker is one to the right
+      return {
+        Location(next.row, next.column + 1),
+        Location(current.row, current.column + 1),
+      };
     }
   }
 }
@@ -240,67 +284,60 @@ void part2(var input) {
   Location start = findStart(pipes);
 
   Set<Location> path = buildPath(start, pipes);
-  Set<Location> contained = Set();
+  Set<Location> leftFlood = Set();
+  Set<Location> rightFlood = Set();
   Location previous = start;
-  
-  // Left perspective works for first this location in first examples
-  //Location current = Location(3, 0);
-  //Location innerTracker = Location(3, 1);
-
-  // example_2
-  //Location current = Location(0, 3);
-  //Location innerTracker = Location(1, 3);
-
-  // example_3 start at (4, 12)
-  //Location current = Location(4, 13);
-  //Location innerTracker = Location(3, 13);
-
-  // example_4
-  //Location current = Location(4, 12);
-  //Location innerTracker = Location(2, 2);
-  
-  // Real input
-  // Start at (41, 111), can go left to (41, 110) or up to (40, 111)
-  Location current = Location(40, 111);
-  Location innerTracker = Location(40, 110);
-
+  Location current = getMovement(start, pipes);
+ 
   while (current != start) {
-    contained = flood(pipes, path, contained, innerTracker);
+    leftFlood = flood(
+      pipes, path, leftFlood, getLeftTracker(previous, current)
+    );
+    rightFlood = flood(
+      pipes, path, rightFlood, getRightTracker(previous, current)
+    );
+    
     Location next = move(previous, current, pipes);
-    innerTracker = getNextTracker(current, next);
     previous = current;
     current = next;
   }
 
   print('Path length: ${path.length}');
-  print('Contained length: ${contained.length}');
+  print('Left flood length: ${leftFlood.length}');
+  print('Right flood length: ${rightFlood.length}');
+  print(pipes.length * pipes[0].length - (leftFlood.length + rightFlood.length + path.length));
 }
 
 void main() {
   File('puzzle_10/example.txt').readAsString().then((String contents) {
+    print('Example 1');
     // Should be 8
-    //part1(contents);
+    part1(contents);
     // Should be 1
-    //part2(contents);
+    part2(contents);
   });
 
   File('puzzle_10/example_2.txt').readAsString().then((String contents) {
+    print('Example 2');
     // Should be 4
-    //part2(contents);
+    part2(contents);
   });
 
   File('puzzle_10/example_3.txt').readAsString().then((String contents) {
+    print('Example 3');
     // Should be 8
-    //part2(contents);
+    part2(contents);
   });
 
   File('puzzle_10/example_4.txt').readAsString().then((String contents) {
+    print('Example 4');
     // Should be 10
-    //part2(contents);
+    part2(contents);
   });
 
   File('puzzle_10/input.txt').readAsString().then((String contents) {
-    //part1(contents);
+    print('Real input');
+    part1(contents);
     part2(contents);
   });
 }
