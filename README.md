@@ -1,6 +1,9 @@
 ## Advent of code
 
-2021 was done in Python and setup in a slightly different way. Commands below apply to other years.
+* 2021 was done in Python and setup in a slightly different way.
+* 2023 is a different language each day.
+
+Commands below apply to years other than those two years.
 
 Setup a new puzzle to solve in Rust for an existing year:
 

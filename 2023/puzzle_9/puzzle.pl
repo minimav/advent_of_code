@@ -21,7 +21,7 @@ sub take_differences {
     if (scalar(grep { $_ == 0 } @numbers) == scalar(@numbers)) {
         return $current_value;
     }
-    my @new_numbers = diff(\@numbers);
+    my @new_numbers = diff(@numbers);
     return take_differences(\@new_numbers, $current_value + $numbers[scalar(@numbers) - 1]);
 }
 
