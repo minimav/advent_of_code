@@ -8,11 +8,10 @@ Rough plan of groups, starting from hardest to easiest.
 6. SQL
 7. Lisp
 8. Elixir
-9. 
-10.
+9. Perl
+10. Dart
 
 * Dart
-* Zig
 * Perl
 * R
 * Swift

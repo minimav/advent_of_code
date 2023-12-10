@@ -40,7 +40,7 @@ kotlin:
 	java -jar build/puzzle_kotlin.jar
 
 perl:
-	perl puzzle.pl
+	perl puzzle_9/puzzle.pl
 
 typescript:
 	tsc --outDir build puzzle.ts
@@ -79,4 +79,4 @@ haskell:
 	./build/puzzle_haskell
 
 dart:
-	dart run puzzle.dart
+	dart run puzzle_10/puzzle.dart
