@@ -112,7 +112,7 @@ func solve(puzzle: String, springs: [Int]) -> Int {
     return numArrangements
 }
 
-func puzzle(input: String) {
+func part1(input: String) {
     let lines = input.split(separator: "\n")
     var answer = 0
     for line in lines {
@@ -125,5 +125,34 @@ func puzzle(input: String) {
     print(answer)
 }
 
-puzzle(input: readFile(path: "puzzle_12/example.txt"))
-puzzle(input: readFile(path: "puzzle_12/input.txt"))
+// Part 2 - non-regex solution required
+func smartSolve(puzzle: String, springs: [Int]) -> Int {
+
+    // Pseudo code
+    // 1. Find the first unknown
+     
+    return 0
+}
+
+func part2(input: String) {
+    let lines = input.split(separator: "\n")
+    var answer = 0
+    for line in lines {
+        let components = line.split(separator: " ")
+        let puzzle = String(components[0])
+        let springs = components[1].split(separator: ",").map { Int($0)!  } as [Int]
+        
+        // Unfold the puzzle 5 times prior to solving
+        let numArrangements = smartSolve(
+            puzzle: String(repeating: puzzle, count: 5),
+            springs: Array(repeating: springs, count: 5).flatMap { $0 }
+        )
+        answer += numArrangements
+    }
+    print(answer)
+}
+
+//part1(input: readFile(path: "puzzle_12/example.txt"))
+//part1(input: readFile(path: "puzzle_12/input.txt"))
+part2(input: readFile(path: "puzzle_12/example.txt"))
+//part2(input: readFile(path: "puzzle_12/input.txt"))
