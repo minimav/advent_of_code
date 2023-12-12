@@ -11,9 +11,8 @@ Rough plan of groups, starting from hardest to easiest.
 9. Perl
 10. Dart
 11. R
+12. Swift
 
-* Perl
-* Swift
 * C#
 * C 
 * Ruby
