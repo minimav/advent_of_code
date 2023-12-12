@@ -125,16 +125,108 @@ func part1(input: String) {
     print(answer)
 }
 
-// Part 2 - non-regex solution required
-func smartSolve(puzzle: String, springs: [Int]) -> Int {
+var cache = [String: Int]()
 
-    // Pseudo code
-    // 1. Find the first unknown
-     
-    return 0
+func clean(puzzle: String) -> String {
+    var cleaned = puzzle
+    while cleaned.first == "." {
+        cleaned.removeFirst()
+    }
+    while cleaned.last == "." {
+        cleaned.removeLast()
+    }
+    // Remove consecutive .s
+    var noDots = ""
+    var previous = ""
+    for char in cleaned {
+        if (char == ".") && (previous == ".") {
+            continue
+        }
+        noDots += String(char)
+        previous = String(char)
+    }
+    return noDots
 }
 
-func part2(input: String) {
+assert(clean(puzzle: "...#.#") == "#.#")
+assert(clean(puzzle: "#.#...") == "#.#")
+assert(clean(puzzle: "...#...###..#") == "#.###.#")
+
+func smartSolve(puzzle: String, springs: [Int]) -> Int {
+    let key = puzzle + springs.map { String($0) }.joined(separator: ",")
+    if let cached = cache[key] {
+        return cached
+    }
+    if springs.count == 0 {
+        if puzzle.contains("#") {
+            cache[key] = 0
+            return 0
+        } else {
+            cache[key] = 1
+            return 1
+        }
+    } else if (puzzle.count == 0) {
+        cache[key] = 0
+        return 0
+    }
+    let firstSpring = springs[0]
+    let remainingSprings = springs[1..<springs.count]
+    if puzzle.count < firstSpring {
+        cache[key] = 0
+        return 0
+    }
+
+    let numHashes = springs.reduce(0, +)
+    let hashCount = puzzle.filter { $0 == "#" }.count
+    let unknownCount = puzzle.filter { $0 == "?" }.count
+    if (numHashes > hashCount + unknownCount) {
+        cache[key] = 0
+        return 0
+    }
+
+    if let firstChar = puzzle.first, firstChar == "#" {
+        let endIndex = puzzle.index(puzzle.startIndex, offsetBy: firstSpring)
+        let puzzleFirstSpring = puzzle[puzzle.startIndex..<endIndex]
+        if puzzleFirstSpring.contains(".") {
+            cache[key] = 0
+            return 0
+        } else if puzzle.count == firstSpring {
+            if remainingSprings.count == 0 {
+                cache[key] = 1
+                return 1
+            } else {
+                cache[key] = 0
+                return 0
+            }
+        } else {
+            let afterIndexChar = puzzle[puzzle.index(puzzle.startIndex, offsetBy: firstSpring)]
+            if afterIndexChar == "#" {
+                cache[key] = 0
+                return 0
+            }
+            let fillFirstSpring = smartSolve(
+                puzzle: clean(puzzle: String(puzzle.dropFirst(firstSpring + 1))),
+                springs: Array(remainingSprings)
+            )
+            cache[key] = fillFirstSpring
+            return fillFirstSpring
+        }
+    } else {
+        let puzzleEnd = String(puzzle.dropFirst(1))
+        let hashStart = smartSolve(
+            puzzle: clean(puzzle: "#" + puzzleEnd),
+            springs: springs
+        )
+        let dotStart = smartSolve(
+            puzzle: clean(puzzle: puzzleEnd),
+            springs: springs
+        )
+        cache[key] = hashStart + dotStart
+        return hashStart + dotStart
+    }
+}
+
+func part2(input: String, repeats: Int) {
     let lines = input.split(separator: "\n")
     var answer = 0
     for line in lines {
@@ -142,17 +234,25 @@ func part2(input: String) {
         let puzzle = String(components[0])
         let springs = components[1].split(separator: ",").map { Int($0)!  } as [Int]
         
-        // Unfold the puzzle 5 times prior to solving
+        // Unfold the puzzle n times prior to solving
+        var newPuzzle = puzzle
+        for _ in 0..<repeats - 1 {
+            newPuzzle += "?" + puzzle
+        }
         let numArrangements = smartSolve(
-            puzzle: String(repeating: puzzle, count: 5),
-            springs: Array(repeating: springs, count: 5).flatMap { $0 }
+            puzzle: clean(puzzle: newPuzzle),
+            springs: Array(repeating: springs, count: repeats).flatMap { $0 }
         )
         answer += numArrangements
     }
     print(answer)
 }
 
-//part1(input: readFile(path: "puzzle_12/example.txt"))
-//part1(input: readFile(path: "puzzle_12/input.txt"))
-part2(input: readFile(path: "puzzle_12/example.txt"))
-//part2(input: readFile(path: "puzzle_12/input.txt"))
+// Original part 1 regexp-based solution
+//part1(input: readFile(path: "puzzle_12/example.txt"), repeats: 1)
+//part1(input: readFile(path: "puzzle_12/input.txt"), repeats: 1)
+
+part2(input: readFile(path: "puzzle_12/example.txt"), repeats: 1)
+part2(input: readFile(path: "puzzle_12/input.txt"), repeats: 1)
+part2(input: readFile(path: "puzzle_12/example.txt"), repeats: 5)
+part2(input: readFile(path: "puzzle_12/input.txt"), repeats: 5)
