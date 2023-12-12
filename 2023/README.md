@@ -10,10 +10,9 @@ Rough plan of groups, starting from hardest to easiest.
 8. Elixir
 9. Perl
 10. Dart
+11. R
 
-* Dart
 * Perl
-* R
 * Swift
 * C#
 * C 

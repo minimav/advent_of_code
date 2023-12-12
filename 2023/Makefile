@@ -9,7 +9,7 @@ rust:
 	./build/puzzle_rs
 
 r:
-	Rscript puzzle.r
+	Rscript puzzle_11/puzzle.r
 
 julia:
 	julia puzzle.jl
