@@ -80,3 +80,6 @@ haskell:
 
 dart:
 	dart run puzzle_10/puzzle.dart
+
+lua:
+	lua puzzle_13/puzzle.lua

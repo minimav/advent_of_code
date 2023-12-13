@@ -12,6 +12,7 @@ Rough plan of groups, starting from hardest to easiest.
 10. Dart
 11. R
 12. Swift
+13. Lua
 
 * C#
 * C 
@@ -35,5 +36,4 @@ Rough plan of groups, starting from hardest to easiest.
 * Pascal
 * Objective C
 * Bash
-* Lua
 * Nim
