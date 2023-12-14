@@ -13,6 +13,18 @@ Rough plan of groups, starting from hardest to easiest.
 11. R
 12. Swift
 13. Lua
+14. (Python)
+15.
+16.
+17.
+18.
+19.
+20.
+21.
+22.
+23.
+24.
+25.
 
 * C#
 * C 
