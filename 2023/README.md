@@ -13,8 +13,8 @@ Rough plan of groups, starting from hardest to easiest.
 11. R
 12. Swift
 13. Lua
-14. (Python)
-15.
+14. Wren
+15. C#
 16.
 17.
 18.

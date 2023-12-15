@@ -72,7 +72,7 @@ erlang:
 	puzzle:solvePuzzles().
 
 csharp:
-	dotnet script puzzle.cs
+	dotnet script puzzle_15/puzzle.cs
 
 haskell:
 	ghc -o build/puzzle_haskell puzzle_1/puzzle.hs
@@ -83,3 +83,6 @@ dart:
 
 lua:
 	lua puzzle_13/puzzle.lua
+
+wren:
+	wren_cli puzzle_14/puzzle.wren
