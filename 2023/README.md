@@ -15,7 +15,7 @@ Rough plan of groups, starting from hardest to easiest.
 13. Lua
 14. Wren
 15. C#
-16.
+16. Java
 17.
 18.
 19.
@@ -26,7 +26,7 @@ Rough plan of groups, starting from hardest to easiest.
 24.
 25.
 
-* C#
+
 * C 
 * Ruby
 * Java

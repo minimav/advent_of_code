@@ -29,7 +29,7 @@ go:
 	go run puzzle.go
 
 java:
-	javac -d build/ Puzzle.java
+	javac -d build/ puzzle_16/Puzzle.java
 	cd build; java Puzzle
 
 scala:
