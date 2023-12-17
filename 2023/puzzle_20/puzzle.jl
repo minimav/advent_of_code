@@ -3,10 +3,10 @@ function puzzle(input)
     println(input)
 end
 
-open("example.txt") do example
+open("puzzle_20/example.txt") do example
     puzzle(read(example, String))
 end
 
-open("input.txt") do input
+open("puzzle_20/input.txt") do input
     puzzle(read(input, String))
 end

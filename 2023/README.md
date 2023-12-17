@@ -16,23 +16,16 @@ Rough plan of groups, starting from hardest to easiest.
 14. Wren
 15. C#
 16. Java
-17.
-18.
-19.
-20.
+17. Ruby
+18. *Go
+19. *Kotlin
+20. *Julia
 21.
 22.
 23.
 24.
 25.
 
-
-* C 
-* Ruby
-* Java
-* Go 
-* Kotlin
-* Julia
 * Scala
 * Rust
 * Javascript
@@ -41,6 +34,8 @@ Rough plan of groups, starting from hardest to easiest.
 
 #### Subs Bench:
 
+* C
+* Zig
 * Racket
 * Odin
 * Crystal

@@ -16,11 +16,11 @@ func puzzle(input string) {
 }
 
 func main() {
-    example, err := os.ReadFile("example.txt")
+    example, err := os.ReadFile("puzzle_18/example.txt")
     check(err)
     puzzle(string(example))
 
-    input, err := os.ReadFile("input.txt")
+    input, err := os.ReadFile("puzzle_18/input.txt")
     check(err)
     puzzle(string(input))
 }

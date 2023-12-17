@@ -12,10 +12,10 @@ r:
 	Rscript puzzle_11/puzzle.r
 
 julia:
-	julia puzzle.jl
+	julia puzzle_20/puzzle.jl
 
 ruby:
-	ruby puzzle.rb
+	ruby puzzle_17/puzzle.rb
 
 c++:
 	g++ puzzle_4/puzzle.cpp -o build/puzzle_cpp
@@ -26,7 +26,7 @@ c:
 	./build/puzzle_c
 
 go:
-	go run puzzle.go
+	go run puzzle_18/puzzle.go
 
 java:
 	javac -d build/ puzzle_16/Puzzle.java
@@ -36,7 +36,7 @@ scala:
 	scala puzzle.scala
 
 kotlin:
-	kotlinc puzzle.kt -include-runtime -d build/puzzle_kotlin.jar
+	kotlinc puzzle_19/puzzle.kt -include-runtime -d build/puzzle_kotlin.jar
 	java -jar build/puzzle_kotlin.jar
 
 perl:

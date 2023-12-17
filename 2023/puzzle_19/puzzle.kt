@@ -8,6 +8,6 @@ fun puzzle(input: String) {
 }
 
 fun main(args : Array<String>) {
-    puzzle(readFile("example.txt"))
-    puzzle(readFile("input.txt"))
+    puzzle(readFile("puzzle_19/example.txt"))
+    puzzle(readFile("puzzle_19/input.txt"))
 }
