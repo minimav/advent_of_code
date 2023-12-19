@@ -18,7 +18,7 @@ Rough plan of groups, starting from hardest to easiest.
 16. Java
 17. Ruby
 18. Go
-19. *Kotlin
+19. Kotlin
 20. *Julia
 21.
 22.
