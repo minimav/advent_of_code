@@ -142,18 +142,26 @@ function part_2(input)
     end
    
     num_presses = 0
-    while (num_presses < 10)
+    cycles = Dict{String, Int}()
+    while (true)
         num_presses += 1
    
         # Start new round with same first signal
         signals = [("button", "low", "broadcaster")]
         while length(signals) > 0
             signal = popfirst!(signals)
-            #println(signal)
             from_key, pulse, to_key = signal
-            if (to_key == "rx") && (pulse == "low")
-                println(num_presses)
-                return
+
+            # Nodes to rx goes through gh which has 4 inputs which all need to
+            # be low simultaneously
+            if (to_key in ["zf", "qx", "rk", "cd"]) && (pulse == "low")
+                if !(to_key in keys(cycles))
+                    cycles[to_key] = num_presses
+                end
+                if length(cycles) == 4
+                    println(prod(values(cycles)))
+                    return
+                end
             end
 
             if !(to_key in keys(modules))
@@ -164,13 +172,6 @@ function part_2(input)
             if new_signals != nothing
                 # Deal with no signals from one flip flop case
                 signals = vcat(signals, new_signals)
-            end
-        end
-
-        println("########### Round $num_presses")
-        for mod in values(modules)
-            if mod isa FlipFlop
-                println(mod.name, " ", mod.on)
             end
         end
     end
@@ -185,6 +186,7 @@ open("puzzle_20/example_2.txt") do example
 end
 
 open("puzzle_20/input.txt") do input
-    #part_1(read(input, String))
-    part_2(read(input, String))
+    input = read(input, String)
+    part_1(input)
+    part_2(input)
 end
