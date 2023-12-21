@@ -1,4 +1,4 @@
-Rough plan of groups, starting from hardest to easiest.
+Language used per day:
 
 1. Haskell
 2. Erlang
@@ -19,28 +19,9 @@ Rough plan of groups, starting from hardest to easiest.
 17. Ruby
 18. Go
 19. Kotlin
-20. *Julia
-21.
-22.
-23.
-24.
-25.
-
-* Scala
-* Rust
-* Javascript
-* Typescript
-* Python
-
-#### Subs Bench:
-
-* C
-* Zig
-* Racket
-* Odin
-* Crystal
-* PHP
-* Pascal
-* Objective C
-* Bash
-* Nim
+20. Julia
+21. Scala
+22. Rust
+23. Typescript
+24. Python
+25. Javascript

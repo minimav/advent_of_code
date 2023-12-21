@@ -1,11 +1,11 @@
 python:
-	python puzzle.py
+	python puzzle_24/puzzle.py
 
 javascript:
-	node puzzle.js
+	node puzzle_25/puzzle.js
 
 rust:
-	rustc puzzle.rs -o build/puzzle_rs
+	rustc puzzle_22/puzzle.rs -o build/puzzle_rs
 	./build/puzzle_rs
 
 r:
@@ -21,10 +21,6 @@ c++:
 	g++ puzzle_4/puzzle.cpp -o build/puzzle_cpp
 	./build/puzzle_cpp
 
-c:
-	gcc puzzle.c -o build/puzzle_c
-	./build/puzzle_c
-
 go:
 	go run puzzle_18/puzzle.go
 
@@ -33,7 +29,7 @@ java:
 	cd build; java Puzzle
 
 scala:
-	scala puzzle.scala
+	scala puzzle_21/puzzle.scala
 
 kotlin:
 	kotlinc puzzle_19/puzzle.kt -include-runtime -d build/puzzle_kotlin.jar
@@ -43,7 +39,7 @@ perl:
 	perl puzzle_9/puzzle.pl
 
 typescript:
-	tsc --outDir build puzzle.ts
+	tsc --outDir build puzzle_23/puzzle.ts
 	node build/puzzle.js
 
 lisp:
@@ -51,9 +47,6 @@ lisp:
 
 elixir:
 	elixir puzzle_8/puzzle.exs
-
-zig:
-	./puzzle.zig
 
 clojure:
 	clj puzzle_5/puzzle.clj

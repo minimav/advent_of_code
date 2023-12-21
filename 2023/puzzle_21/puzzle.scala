@@ -5,9 +5,9 @@ object PuzzleScala {
     }
 
     def main(args: Array[String]) = {
-        val example = scala.io.Source.fromFile("example.txt").mkString
+        val example = scala.io.Source.fromFile("puzzle_21/example.txt").mkString
         puzzle(example)
-        val input = scala.io.Source.fromFile("input.txt").mkString
+        val input = scala.io.Source.fromFile("puzzle_21/input.txt").mkString
         puzzle(input)
     }
 }

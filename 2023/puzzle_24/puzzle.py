@@ -3,8 +3,8 @@ def function(input: str):
 
 
 if __name__ == "__main__":
-    with open("example.txt", "r") as f:
+    with open("puzzle_24/example.txt", "r") as f:
         function(f.read())
 
-    with open("input.txt", "r") as f:
+    with open("puzzle_24/input.txt", "r") as f:
         function(f.read())
