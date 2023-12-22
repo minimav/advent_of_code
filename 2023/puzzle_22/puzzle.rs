@@ -136,7 +136,7 @@ fn let_drop(blocks: Vec<Block>) -> DroppedBlocks {
                 }
                 dropped_blocks.push(block);
                 // Not supported by anything but the floor
-                supported_by.entry(block).or_insert(HashSet::new());
+                //supported_by.entry(block).or_insert(HashSet::new());
                 break;
             }
 
@@ -203,7 +203,37 @@ fn puzzle(input: &str) {
                 == 0
         })
         .collect::<Vec<&Block>>();
-    println!("{}", can_distintegrate.len())
+    println!("{}", can_distintegrate.len());
+
+    // Part 2
+    let mut total_drops = 0;
+    for block in dropped_blocks.blocks.iter() {
+        let mut supported_by = dropped_blocks.supported_by.clone();
+        let mut to_remove: HashSet<Block> = HashSet::new();
+        to_remove.insert(*block);
+        loop {
+            if to_remove.is_empty() {
+                break;
+            }
+            let remove_block = to_remove.iter().next().cloned().unwrap();
+            to_remove.remove(&remove_block);
+            supported_by.remove(&remove_block);
+
+            let mut to_remove_keys = Vec::new();
+            for (k, v) in supported_by.iter_mut() {
+                v.remove(&remove_block);
+                if v.is_empty() {
+                    to_remove_keys.push(*k);
+                    to_remove.insert(*k);
+                    total_drops += 1;
+                }
+            }
+            for k in to_remove_keys {
+                supported_by.remove(&k);
+            }
+        }
+    }
+    println!("{}", total_drops);
 }
 
 fn main() {
