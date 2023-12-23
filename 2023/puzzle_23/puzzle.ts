@@ -153,46 +153,103 @@ function part1(input: string) {
   console.log(longest);
 }
 
-function getIgnoreList(outgoing: Map<String, Set<Complex>>, incoming: Map<String, Set<Complex>>, start: Complex, end: Complex) {
-  let ignoreList: Set<String> = new Set();
-  
-  // Add dead ends to ignore list
-  outgoing.forEach((outs, node) => {
-    if (node === start.toString() || node === end.toString()) {
-      return 
-    }
-    let ins = incoming.get(node)!;
-    if ((outs.size === 1) && (ins.size === 1)) {
-      ignoreList.add(node)
+interface Edge {
+  from: Complex;
+  to: Complex;
+  distance: number;
+}
+
+function contract(start: Complex, end: Complex, outgoing: Map<String, Set<Complex>>) {
+  let graph: Map<String, Set<Edge>> = new Map();
+  let queue = new PriorityQueue({
+    comparator: function(a: Path, b: Path) {
+        return b.distance - a.distance;
     }
   });
-  
-  // Walk backwards from dead ends
-  let queue: String[] = Array.from(ignoreList);
-  let visited: Set<String> = new Set();
-  visited.add(start.toString());
-  visited.add(end.toString());
+  let next = new Complex(start.real, start.imaginary + 1);
+  let startPath =  {
+    from: start,
+    to: next,
+    distance: 1,
+    visited: new Set([
+      start.toString(),
+      next.toString()
+    ])
+  }
+  let branchNodes: Set<String> = new Set([start.toString()]);
+  queue.queue(startPath);
 
   while (queue.length > 0) {
-    let node = queue.shift()!;
-    visited.add(node);
-    let ins = incoming.get(node)!;
-    let outs = outgoing.get(node)!;
-    if ((ins.size == 2) && (outs.size == 2)) {
-      ins.forEach((inNode) => {
-        if (!visited.has(inNode.toString())) {
-          queue.push(inNode.toString());
+    let path = queue.dequeue()!;
+    let fromKey = path.from.toString();
+
+    // Move till reaching a branch point
+    var node = path.to
+    var distance = 0
+    while (true) {
+      let nodeKey = node.toString();
+      let neighbours = Array.from(outgoing.get(nodeKey)!.values());
+      if (neighbours.length > 2) {
+        // Branch node, possibly seen before
+        if (!graph.has(fromKey)) {
+          graph.set(fromKey, new Set());
         }
-      });
+        let edge = {
+          from: path.from,
+          to: node,
+          distance: path.distance + distance
+        };
+        graph.get(fromKey)!.add(edge);
+
+        if (branchNodes.has(nodeKey)) { 
+          // We've seen it before, so after making edge into it, don't add to the
+          // queue from it
+          break;
+        }
+        branchNodes.add(nodeKey);
+        neighbours.forEach((neighbour) => {
+          let newPath = {
+            from: node,
+            to: neighbour,
+            distance: 1,
+            visited: new Set([nodeKey, neighbour.toString()])
+          };
+          queue.queue(newPath);
+        });
+        break;
+      } else if (neighbours.length === 1) {
+        if (nodeKey === end.toString()) {
+          if (!graph.has(fromKey)) {
+            graph.set(fromKey, new Set());
+          }
+          let edgeToEnd = {
+            from: path.from,
+            to: end,
+            distance: path.distance + distance
+          };
+          graph.get(fromKey)!.add(edgeToEnd);
+        }
+        break;
+      }
+
+      // Choose node not in path visited so far as one to continue along
+      for (let i = 0; i < neighbours.length; i++) {
+        let neighbour = neighbours[i];
+        if (!path.visited.has(neighbour.toString())) {
+          node = neighbour;
+          break;
+        }
+      }
+      path.visited.add(node.toString());
+      distance++;
     }
   }
-
-  return ignoreList;
+  return graph;
 }
 
 function part2(input: string) {
-  let {incoming, outgoing, start, end} = part2Parse(input);
-  let graph = outgoing;
+  let {outgoing, start, end} = part2Parse(input);
+  let graph: Map<String, Set<Edge>> = contract(start, end, outgoing);
 
   var longest: number = 0
   var nodesProcessed: number = 0;
@@ -201,43 +258,34 @@ function part2(input: string) {
         return a.distance - b.distance;
     }
   });
-  let seenBefore: Map<String, number> = new Map();
   let startPath: Path = {node: start, distance: 0, visited: new Set([start.toString()])}
   queue.queue(startPath);
 
   while (queue.length > 0) {
     nodesProcessed++;
-    let path = queue.dequeue()!;
-    if (nodesProcessed % 20000 === 0) {
-      console.log(`Queue length ${queue.queue.length}, nodes processed ${nodesProcessed}, current node ${path.node}, path ${path.distance}`);
-    }
-    
-    // let key = path.node.toString();
-    // if (seenBefore.has(key) && (seenBefore.get(key)! > path.distance)) {
-    //   //console.log(`Seen before, skipping ${key}`);
-    //   continue;
-    // }
-    seenBefore.set(path.node.toString(), path.distance);
-    
-    if (path.node.real === end.real && path.node.imaginary === end.imaginary) {
+    let path = queue.dequeue()!; 
+    var nodeKey = path.node.toString()
+
+    if (nodeKey === end.toString()) {
       if (path.distance < longest) {
         console.log(
-          `Path of ${path.distance} got to the end, queue length ${queue.queue.length}, nodes processed ${nodesProcessed}`
+          `Path of ${path.distance} got to the end, queue length ${queue.length}, nodes processed ${nodesProcessed}`
         );
         longest = path.distance;
       }
       continue;
     }
-    
-    let neighbours = graph.get(path.node.toString());
-    neighbours!.forEach((neighbour) => {
-      if (!path.visited.has(neighbour.toString())) {
+
+    var outgoingEdges = graph.get(nodeKey)!;
+    outgoingEdges.forEach((edge) => {
+      let toKey = edge.to.toString();
+      if (!path.visited.has(toKey)) {
         let newVisited: Set<String> = new Set(path.visited);
-        newVisited.add(neighbour.toString());
-        let newDistance = path.distance - 1;
+        newVisited.add(toKey);
+        let newDistance = path.distance - edge.distance;
         
         let newPath: Path = {
-          node: neighbour,
+          node: edge.to,
           distance: newDistance,
           visited: newVisited
         };
@@ -250,7 +298,7 @@ function part2(input: string) {
 
 let example = readFileSync('example.txt', 'utf8');
 let input = readFileSync('input.txt', 'utf8');
-//part1(example);
-//part1(input);
+part1(example);
+part1(input);
 part2(example);
 part2(input);
