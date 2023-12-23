@@ -205,9 +205,14 @@ fn puzzle(input: &str) {
         .collect::<Vec<&Block>>();
     println!("{}", can_distintegrate.len());
 
-    // Part 2
+    // Part 2 - this repeats a lot of work
+    // Better solution removes each block and counts number of falls and which
+    // ones fall, then recursively walk through
     let mut total_drops = 0;
     for block in dropped_blocks.blocks.iter() {
+        if can_distintegrate.contains(&block) {
+            continue;
+        }
         let mut supported_by = dropped_blocks.supported_by.clone();
         let mut to_remove: HashSet<Block> = HashSet::new();
         to_remove.insert(*block);

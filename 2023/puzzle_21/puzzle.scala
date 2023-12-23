@@ -1,3 +1,5 @@
+import scala.collection.mutable.HashSet
+
 object PuzzleScala {
 
     def notOutOfBounds(row: Int, col: Int, numRows: Int, numCols: Int): Boolean = {
@@ -5,6 +7,10 @@ object PuzzleScala {
             return false
         }
         return true
+    }
+
+    def positiveDivisor(a: Int, b: Int): Int = {
+        return (a % b + b) % b
     }
 
     def part1(input: String, stepsBound: Int) = {
@@ -21,9 +27,6 @@ object PuzzleScala {
                 }
             }
         })
-        
-        //println(grid.map(_.mkString("")).mkString("\n"))
-        //println(start)
         
         var answer = 0
         var queue = List((start, 0))
@@ -84,10 +87,76 @@ object PuzzleScala {
         println(answer)
     }
 
+    def part2(input: String, stepsBound: Int) = {
+        val lines = input.split("\n")
+        val numRows = lines.length
+        val numCols = lines(0).length
+        var start = (0, 0)
+        val grid = Array.ofDim[Char](numRows, numCols)
+        lines.zipWithIndex.foreach((line, rowIndex) => {
+            line.zipWithIndex.foreach { case (c, columnIndex) => 
+                grid(rowIndex)(columnIndex) = c
+                if (c == 'S') {
+                    start = (rowIndex, columnIndex)
+                }
+            }
+        })
+
+        var visited = HashSet[(Int, Int)]()
+        visited.add(start)
+        var steps = 0
+        while (steps < stepsBound) {
+            var nextVisited = HashSet[(Int, Int)]()
+            visited.foreach { case (row, col) =>
+                // Up
+                if (
+                    (grid(positiveDivisor(row - 1, numRows))(positiveDivisor(col, numCols)) != '#')
+                ) {
+                    nextVisited.add((row - 1, col))
+                }
+
+                // Down
+                if (
+                    (grid(positiveDivisor(row + 1, numRows))(positiveDivisor(col, numCols)) != '#')
+                ) {
+                    nextVisited.add((row + 1, col))
+                }
+
+                // Left
+                if (
+                    (grid(positiveDivisor(row, numRows))(positiveDivisor(col - 1, numCols)) != '#')
+                ) {
+                    nextVisited.add((row, col - 1))
+                }
+
+                // Right
+                if (
+                    (grid(positiveDivisor(row, numRows))(positiveDivisor(col + 1, numCols)) != '#')
+                ) {
+                    nextVisited.add((row, col + 1))
+                }
+            }
+            visited = nextVisited
+            steps += 1
+        }
+        println(visited.size)
+    }
+
     def main(args: Array[String]) = {
         val example = scala.io.Source.fromFile("puzzle_21/example.txt").mkString
         part1(example, 6)
+        // part2(example, 6)
+        // part2(example, 10)
+        // part2(example, 50)
+        // part2(example, 100)
+        // part2(example, 500)
+        // part2(example, 1000)
         val input = scala.io.Source.fromFile("puzzle_21/input.txt").mkString
-        part1(input, 64)
+        part1(input, 65)
+        part2(input, 65)
+        part2(input, 65 + 131)
+        part2(input, 65 + 2 * 131)
+        part2(input, 65 + 3 * 131)
+        part2(input, 65 + 4 * 131)
     }
 }

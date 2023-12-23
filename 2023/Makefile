@@ -39,8 +39,7 @@ perl:
 	perl puzzle_9/puzzle.pl
 
 typescript:
-	tsc --outDir build puzzle_23/puzzle.ts
-	node build/puzzle.js
+	cd puzzle_23; tsc puzzle.ts; node puzzle.js
 
 lisp:
 	sbcl --script puzzle_7/puzzle.lsp
