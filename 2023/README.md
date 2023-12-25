@@ -24,4 +24,4 @@ Language used per day:
 22. Rust
 23. Typescript
 24. Python
-25. Javascript
+25. ~~Javascript~~ Python (for networkx...)
