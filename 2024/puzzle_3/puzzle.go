@@ -1,4 +1,4 @@
-// go run puzzle_2/puzzle.go
+// go run puzzle_3/puzzle.go
 package main
 
 import (
