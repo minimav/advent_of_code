@@ -5,7 +5,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
+
+func timeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	fmt.Printf("%s took %s\n", name, elapsed)
+}
 
 type location struct {
 	row    int
@@ -67,19 +73,19 @@ func make_array(input string) lab {
 }
 
 var offsets = map[string]location{
-	"up": location{
+	"up": {
 		row:    -1,
 		column: 0,
 	},
-	"down": location{
+	"down": {
 		row:    1,
 		column: 0,
 	},
-	"left": location{
+	"left": {
 		row:    0,
 		column: -1,
 	},
-	"right": location{
+	"right": {
 		row:    0,
 		column: 1,
 	},
@@ -92,7 +98,7 @@ var turn = map[string]string{
 	"down":  "left",
 }
 
-func part_1(input string) {
+func get_visited_locations(input string) map[location]struct{} {
 	lab := make_array(input)
 	num_columns := len(lab.positions[0])
 	num_rows := len(lab.positions)
@@ -118,36 +124,48 @@ func part_1(input string) {
 			visited[lab.location] = struct{}{}
 		}
 	}
+	return visited
+}
+
+func part_1(input string) {
+	defer timeTrack(time.Now(), "part_1")
+	visited := get_visited_locations(input)
 	fmt.Println(len(visited))
 }
 
 func part_2(input string) {
+	defer timeTrack(time.Now(), "part_2")
 	lab := make_array(input)
 	num_columns := len(lab.positions[0])
 	num_rows := len(lab.positions)
 
-	var possible_obstructions = []location{}
-	for row_index := 0; row_index < num_rows; row_index++ {
-		for column_index := 0; column_index < num_columns; column_index++ {
-			if lab.positions[row_index][column_index] != "." || (lab.location.row == row_index && lab.location.column == column_index) {
-				continue
-			}
-			possible_obstructions = append(
-				possible_obstructions,
-				location{
-					row:    row_index,
-					column: column_index,
-				},
-			)
-		}
-	}
+	// A potential obstruction can only occur on the route of the
+	// no-obstructions case from part 1!
+	visited := get_visited_locations(input)
+	// Cannot be the start location though
+	delete(visited, lab.location)
+
+	start_location := lab.location
+	start_direction := lab.direction
+
+	// Setting previous obstruction to start is benign as this will always be
+	// a non # position
+	var previous_obs location = start_location
 
 	num_obstruction_loops := 0
-	for _, obs := range possible_obstructions {
-		lab := make_array(input)
-		lab.positions[obs.row][obs.column] = "#"
-		turned_at := make(map[location_with_direction]struct{})
+	for obs := range visited {
+		// Reset start location and direction
+		lab.location = start_location
+		lab.direction = start_direction
 
+		// Reset previous obstruction to avoid parsing input many times
+		lab.positions[previous_obs.row][previous_obs.column] = "."
+		previous_obs = obs
+
+		// Add new obstruction
+		lab.positions[obs.row][obs.column] = "#"
+
+		turned_at := make(map[location_with_direction]struct{})
 		for true {
 			offset := offsets[lab.direction]
 			next_row := lab.location.row + offset.row
