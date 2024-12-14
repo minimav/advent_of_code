@@ -54,6 +54,59 @@ func printRobots(locations map[location]int, num_rows int, num_columns int) {
 	}
 }
 
+type rle struct {
+	num_robots int
+	count      int
+}
+
+func rleRobots(locations map[location]int, num_rows int, num_columns int) []rle {
+	encoding := []rle{}
+	current := -1
+	current_count := 0
+	for row := 0; row < num_rows; row++ {
+		for column := 0; column < num_columns; column++ {
+			num_robots, has_count := locations[location{row, column}]
+			next := 0
+			if has_count {
+				next = num_robots
+			}
+			if next == current {
+				current_count += 1
+			} else {
+				if current_count > 0 {
+					encoding = append(encoding, rle{
+						num_robots: current,
+						count:      current_count,
+					})
+				}
+				current_count = 1
+				current = next
+			}
+		}
+	}
+	if current_count > 0 {
+		encoding = append(encoding, rle{
+			num_robots: current,
+			count:      current_count,
+		})
+	}
+	return encoding
+}
+
+func reverse_entropy(encoding []rle) float64 {
+	num := 0
+	denom := 0
+	for _, r := range encoding {
+		if r.num_robots == 0 {
+			continue
+		}
+		denom += 1
+		num += r.count
+	}
+	// Count average run length of non-zero counts
+	return float64(num) / float64(denom)
+}
+
 func parse_robots(input string) []robot {
 	lines := strings.Split(input, "\n")
 
@@ -116,26 +169,6 @@ func part_1(input string, num_rows int, num_columns int) {
 	fmt.Println(answer)
 }
 
-func check_consecutive(values map[int]struct{}, size int) bool {
-	_, last_in := values[0]
-	num_switches := 2
-	if last_in {
-		// Could start at the top, so reduce switches allowed
-		num_switches = 1
-	}
-	switches := 0
-	for i := 1; i < size; i++ {
-		_, first := values[i-1]
-		if _, second := values[i]; first != second {
-			switches += 1
-		}
-		if switches > num_switches {
-			return false
-		}
-	}
-	return true
-}
-
 func part_2(input string) {
 	defer timeTrack(time.Now(), "part_2")
 	num_rows := 103
@@ -181,6 +214,35 @@ func part_2(input string) {
 	}
 }
 
+func part_2_alt(input string) {
+	defer timeTrack(time.Now(), "part_2")
+	num_rows := 103
+	num_columns := 101
+
+	robots := parse_robots(input)
+
+	for move := 1; move > 0; move++ {
+		locations := make(map[location]int)
+		for _, robot := range robots {
+			robot.move(num_rows, num_columns, move)
+			if _, seen := locations[robot.loc]; seen {
+				locations[robot.loc] += 1
+			} else {
+				locations[robot.loc] = 1
+			}
+		}
+		rle := rleRobots(locations, num_rows, num_columns)
+		rev_ent := reverse_entropy(rle)
+
+		if rev_ent > 1.3 {
+			printRobots(locations, num_rows, num_columns)
+			fmt.Println(move, rev_ent)
+			fmt.Scanln()
+		}
+
+	}
+}
+
 func main() {
 	example, err := os.ReadFile("puzzle_14/example.txt")
 	if err != nil {
@@ -193,5 +255,6 @@ func main() {
 		panic(err)
 	}
 	part_1(string(input), 103, 101)
-	part_2(string(input))
+	//part_2(string(input))
+	part_2_alt(string(input))
 }
