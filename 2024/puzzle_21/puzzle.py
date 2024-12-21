@@ -1,5 +1,6 @@
+import functools
 import heapq
-from collections import Counter
+import itertools
 
 # +---+---+---+
 # | 7 | 8 | 9 |
@@ -139,24 +140,46 @@ def hop_shortest_routes(
     return routes
 
 
+numeric_keypad_shortest_routes = {}
+keypad_chars = "0123456789A"
+for start in keypad_chars:
+    for end in keypad_chars:
+        numeric_keypad_shortest_routes[start, end] = dijkstra_shortest_paths(
+            numeric_keypad, start, end
+        )
+
+arrows_keypad_shortest_routes = {}
+arrow_chars = "^<>vA"
+for start in arrow_chars:
+    for end in arrow_chars:
+        arrows_keypad_shortest_routes[start, end] = dijkstra_shortest_paths(
+            arrows_keypad, start, end
+        )
+
+
+@functools.cache
+def memoise(start: str, end: str, num_left: int) -> int:
+    if num_left == 1:
+        # Final step is human press plus A to enter
+        return len(arrows_keypad_shortest_routes[start, end][0]) + 1
+    return min(
+        sum(
+            memoise(e_start, e_end, num_left - 1)
+            for e_start, e_end in itertools.pairwise("A" + expansion + "A")
+            # Need to start and end at A to reflect press from previous and next
+        )
+        for expansion in arrows_keypad_shortest_routes[start, end]
+    )
+
+
+def solve(target: str, num_layers: int) -> int:
+    # Need to start at A on each keypad
+    input = "A" + target
+    return sum(memoise(*pair, num_layers) for pair in itertools.pairwise(input))
+
+
 def press_buttons(input: str, num_layers: int):
     lines = input.split("\n")
-
-    numeric_keypad_shortest_routes = {}
-    keypad_chars = "0123456789A"
-    for start in keypad_chars:
-        for end in keypad_chars:
-            numeric_keypad_shortest_routes[start, end] = dijkstra_shortest_paths(
-                numeric_keypad, start, end
-            )
-
-    arrows_keypad_shortest_routes = {}
-    arrow_chars = "^<>vA"
-    for start in arrow_chars:
-        for end in arrow_chars:
-            arrows_keypad_shortest_routes[start, end] = dijkstra_shortest_paths(
-                arrows_keypad, start, end
-            )
 
     answer = 0
     for line in lines:
@@ -166,25 +189,7 @@ def press_buttons(input: str, num_layers: int):
         # Solve numeric keypad problem first
         routes = hop_shortest_routes(numeric_keypad_shortest_routes, line)
 
-        layer_routes = routes
-        for layer_index in range(1, num_layers + 1):
-            print(f"Robot layer {layer_index} with {len(layer_routes)} routes")
-            print(layer_routes)
-            # One further layer of presses away from the numeric keypad
-            new_layer_routes = []
-            min_length = float("inf")
-            for route in layer_routes:
-                new_routes = hop_shortest_routes(arrows_keypad_shortest_routes, route)
-                length = len(new_routes[0])
-                if length < min_length:
-                    min_length = length
-                    new_layer_routes = new_routes
-                elif length == min_length:
-                    new_layer_routes += new_routes
-
-            layer_routes = list(set(new_layer_routes))
-
-        presses = min(len(v) for v in layer_routes)
+        presses = min(solve(v, num_layers) for v in routes)
         print(presses, intensity)
         answer += presses * intensity
 
@@ -194,10 +199,10 @@ def press_buttons(input: str, num_layers: int):
 if __name__ == "__main__":
     with open("puzzle_21/example.txt", "r") as f:
         example = f.read()
-        # press_buttons(example, 2)
+        press_buttons(example, 2)
         press_buttons(example, 25)
 
     with open("puzzle_21/input.txt", "r") as f:
         input = f.read()
-        # press_buttons(input, 2)
-        # press_buttons(input, 25)
+        press_buttons(input, 2)
+        press_buttons(input, 25)
