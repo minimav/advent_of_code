@@ -38,20 +38,23 @@ func part_1(input string) {
 	fmt.Println(answer)
 }
 
-type change struct {
-	a int
-	b int
-	c int
-	d int
+func change_hash(nums []int) int {
+	// Numbers between -9 and 9 inclusive. Shift to between 1 and 19, use 6 bits
+	// to encode each block of 4 changes uniquely
+	hash := 0
+	for i, num := range nums {
+		hash += (num + 10) << (6 * i)
+	}
+	return hash
 }
 
 func part_2(input string) {
 	defer timeTrack(time.Now(), "part_2")
 	lines := strings.Split(input, "\n")
 
-	change_counts := make(map[change]int)
+	change_counts := make(map[int]int)
 	for _, line := range lines {
-		seen_change := make(map[change]struct{})
+		seen_change := make(map[int]struct{})
 		changes := []int{}
 		secret_number, _ := strconv.Atoi(line)
 		price := secret_number % 10
@@ -67,24 +70,20 @@ func part_2(input string) {
 			if i < 3 {
 				continue
 			}
-			change := change{
-				a: changes[i],
-				b: changes[i-1],
-				c: changes[i-2],
-				d: changes[i-3],
-			}
+			hash := change_hash(changes[i-3:])
+
 			// Only record first occurrence of this sequence of changes
-			if _, seen := seen_change[change]; seen {
+			if _, seen := seen_change[hash]; seen {
 				continue
 			}
 
 			// Otherwise add to the change's running total
-			if _, seen := change_counts[change]; seen {
-				change_counts[change] += price
+			if _, seen := change_counts[hash]; seen {
+				change_counts[hash] += price
 			} else {
-				change_counts[change] = price
+				change_counts[hash] = price
 			}
-			seen_change[change] = struct{}{}
+			seen_change[hash] = struct{}{}
 		}
 	}
 	answer := 0
