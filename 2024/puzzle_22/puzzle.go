@@ -16,9 +16,11 @@ func timeTrack(start time.Time, name string) {
 
 func get_secret_number(number int) (int, int) {
 
-	secret := ((number * 64) ^ number) % 16777216
-	secret = ((secret / 32) ^ secret) % 16777216
-	secret = ((secret * 2048) ^ secret) % 16777216
+	// 16777216 = 2^24 - Do modulo via bitshift
+	shifter := (2 << 23) - 1
+	secret := ((number * 64) ^ number) & shifter
+	secret = ((secret / 32) ^ secret) & shifter
+	secret = ((secret * 2048) ^ secret) & shifter
 
 	return secret, secret % 10
 }
