@@ -45,32 +45,13 @@ type change struct {
 	d int
 }
 
-func get_part_2_answer(all_changes map[change]struct{}, best_changes_by_line map[int]map[change]int) int {
-	defer timeTrack(time.Now(), "part_2_final_answer")
-	answer := 0
-	for change, _ := range all_changes {
-		score := 0
-		for _, line_best := range best_changes_by_line {
-			if price, seen := line_best[change]; seen {
-				score += price
-			}
-		}
-		if score > answer {
-			//fmt.Println(change, score)
-			answer = score
-		}
-	}
-	return answer
-}
-
 func part_2(input string) {
 	defer timeTrack(time.Now(), "part_2")
 	lines := strings.Split(input, "\n")
 
-	best_changes_by_line := make(map[int]map[change]int)
-	all_changes := make(map[change]struct{})
-	for line_index, line := range lines {
-		line_best := make(map[change]int)
+	change_counts := make(map[change]int)
+	for _, line := range lines {
+		seen_change := make(map[change]struct{})
 		changes := []int{}
 		secret_number, _ := strconv.Atoi(line)
 		price := secret_number % 10
@@ -93,18 +74,26 @@ func part_2(input string) {
 				d: changes[i-3],
 			}
 			// Only record first occurrence of this sequence of changes
-			if _, seen := line_best[change]; seen {
+			if _, seen := seen_change[change]; seen {
 				continue
 			}
 
-			line_best[change] = new_price
-			all_changes[change] = struct{}{}
+			// Otherwise add to the change's running total
+			if _, seen := change_counts[change]; seen {
+				change_counts[change] += price
+			} else {
+				change_counts[change] = price
+			}
+			seen_change[change] = struct{}{}
 		}
-
-		best_changes_by_line[line_index] = line_best
+	}
+	answer := 0
+	for _, v := range change_counts {
+		if v > answer {
+			answer = v
+		}
 	}
 
-	answer := get_part_2_answer(all_changes, best_changes_by_line)
 	fmt.Println(answer)
 }
 
