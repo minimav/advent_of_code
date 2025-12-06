@@ -41,13 +41,13 @@ fn part_2(contents: &str) -> u32 {
     let mut locations = parse(contents);
     let mut answer = 0;
     let mut size = locations.len();
+    let combos = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)];
     loop {
         let mut new_locations: HashSet<(i32, i32)> = HashSet::new();
 
         for location in &locations {
             let (row, col) = location;
             let mut neighbours = 0;
-            let combos = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)];
             for (dr, dc) in &combos {
                 let new_row = row + dr;
                 let new_col = col + dc;
@@ -125,16 +125,24 @@ fn part_2_fast(contents: &str) -> u32 {
     let num_cols = lines[0].len();
     let mut locations = parse_fast(lines, num_rows, num_cols);
 
+    let combos = [
+        (-1isize, 0isize), (1, 0), (0, -1), (0, 1),
+        (-1, -1), (-1, 1), (1, -1), (1, 1)
+    ];
+
     let mut answer = 0;
+    let mut mask = locations.iter().enumerate().filter(|&(_, &v)| v == 1).map(|(i, _)| i).collect::<Vec<usize>>();
     loop {
         let current_answer = answer;
+        // Create new bit vector and set of non-zero locations for next iteration
         let mut new_locations = locations.clone();
-        for (index, _) in locations.iter().enumerate().filter(|&(_, &v)| v == 1) {;
+        let mut new_mask = Vec::new();
+        
+        for index in mask {;
             let row = index / num_cols;
             let col = index % num_cols;
             let mut neighbours = 0;
-            let combos = [(-1isize, 0isize), (1, 0), (0, -1), (0, 1),
-                        (-1, -1), (-1, 1), (1, -1), (1, 1)];
+            
             for (dr, dc) in &combos {
                 let new_row = row as isize + dr;
                 let new_col = col as isize + dc;
@@ -150,12 +158,15 @@ fn part_2_fast(contents: &str) -> u32 {
             if neighbours <= 3 {
                 answer += 1;
                 new_locations[index] = 0;
+            } else {
+                new_mask.push(index);
             }
         }
         if current_answer == answer {
             break;
         }
         locations = new_locations;
+        mask = new_mask;
     }
     return answer;
 }
