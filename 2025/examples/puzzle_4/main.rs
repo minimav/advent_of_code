@@ -1,61 +1,74 @@
 use std::time::Instant;
+use std::collections::HashSet;
+
+fn parse(contents: &str) -> HashSet<(i32, i32)> {
+    let lines: Vec<&str> = contents.lines().collect();    
+    let mut locations = HashSet::new();
+    let mut row = 0;
+    for line in lines {
+        for (col, c) in line.chars().enumerate() {
+            if c == '@' {
+                locations.insert((row as i32, col as i32));
+            }
+        }
+        row += 1;
+    }
+    return locations;
+}
 
 fn part_1(contents: &str) -> u32 {
-    let mut position: i32 = 50;
-    let mut zero_visits: u32 = 0;
-    let mut lines = contents.lines();
-    while let Some(line) = lines.next() {
-        let instruction = line.chars().next().unwrap();
-        let value: i32 = line[1..].parse().unwrap();
-        match instruction {
-            'R' => {
-                position = (position + value) % 100;
+    let locations = parse(contents);
+    let mut answer = 0;
+    for location in &locations {
+        let (row, col) = location;
+        let mut neighbours = 0;
+        let combos = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)];
+        for (dr, dc) in &combos {
+            let new_row = row + dr;
+            let new_col = col + dc;
+            if locations.contains(&(new_row, new_col)) {
+                neighbours += 1;
             }
-            'L' => {
-                position = (position - value) % 100;
-            }
-            _ => panic!("Unknown instruction"),
         }
-        if position == 0 {
-            zero_visits += 1;
+        if neighbours <= 3 {
+            answer += 1;
         }
     }
-    return zero_visits
+    return answer;
 }
 
 fn part_2(contents: &str) -> u32 {
-    let mut position: i32 = 50;
-    let mut zero_visits: u32 = 0;
-    let mut lines = contents.lines();
-    while let Some(line) = lines.next() {
-        let instruction = line.chars().next().unwrap();
-        let value: i32 = line[1..].parse().unwrap();
-        match instruction {
-            'R' => {
-                let to_zero = (100 - position) % 100;
-                if value >= to_zero {
-                    zero_visits += ((value - to_zero) / 100) as u32;
-                    if to_zero > 0 {
-                        zero_visits += 1;
-                    }
+    let mut locations = parse(contents);
+    let mut answer = 0;
+    let mut size = locations.len();
+    loop {
+        let mut new_locations: HashSet<(i32, i32)> = HashSet::new();
+
+        for location in &locations {
+            let (row, col) = location;
+            let mut neighbours = 0;
+            let combos = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)];
+            for (dr, dc) in &combos {
+                let new_row = row + dr;
+                let new_col = col + dc;
+                if locations.contains(&(new_row, new_col)) {
+                    neighbours += 1;
                 }
-                
-                position = (position + value) % 100;
             }
-            'L' => {
-                let to_zero = position;
-                if value >= to_zero {
-                    zero_visits += ((value - to_zero) / 100) as u32;
-                    if to_zero > 0 {
-                        zero_visits += 1;
-                    }
-                }
-                position = (position - value) % 100;
+            if neighbours <= 3 {
+                answer += 1;
+            } else {
+                new_locations.insert((*row, *col));
             }
-            _ => panic!("Unknown instruction"),
         }
+        if new_locations.len() == size {
+            break;
+        }
+        size = new_locations.len();
+        locations = new_locations;
     }
-    return zero_visits
+
+    return answer;
 }
 
 #[cfg(test)]
@@ -64,12 +77,12 @@ mod tests {
 
     #[test]
     fn test_part_1_example() {
-        assert_eq!(part_1(include_str!("./example.txt")), 3);
+        assert_eq!(part_1(include_str!("./example.txt")), 13);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(include_str!("./example.txt")), 6);
+        assert_eq!(part_2(include_str!("./example.txt")), 43);
     }
 }
 

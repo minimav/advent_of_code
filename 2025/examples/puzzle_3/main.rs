@@ -34,7 +34,7 @@ fn part_2(contents: &str) -> u64 {
         let digits: Vec<_> = line.chars().collect();
         let mut current_index: usize = 1;
         
-        // These are the indexes of the bet digits so far
+        // These are the indexes of the best digits so far
         let mut current_best: [usize; 12] = (0..voltage_size).collect::<Vec<_>>().try_into().expect("Wrong size"); 
         while current_index <= max_index {
             let digit = digits[current_index];
