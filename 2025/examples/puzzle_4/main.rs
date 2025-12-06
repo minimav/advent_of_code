@@ -138,7 +138,7 @@ fn part_2_fast(contents: &str) -> u32 {
         let mut new_locations = locations.clone();
         let mut new_mask = Vec::new();
         
-        for index in mask {;
+        for index in mask {
             let row = index / num_cols;
             let col = index % num_cols;
             let mut neighbours = 0;
@@ -155,6 +155,71 @@ fn part_2_fast(contents: &str) -> u32 {
                     neighbours += 1;
                 }
             }
+            if neighbours <= 3 {
+                answer += 1;
+                new_locations[index] = 0;
+            } else {
+                new_mask.push(index);
+            }
+        }
+        if current_answer == answer {
+            break;
+        }
+        locations = new_locations;
+        mask = new_mask;
+    }
+    return answer;
+}
+
+fn part_2_faster(contents: &str) -> u32 {
+    let lines: Vec<&str> = contents.lines().collect();    
+    let num_rows = lines.len();
+    let num_cols = lines[0].len();
+    let mut locations = parse_fast(lines, num_rows, num_cols);
+
+    // From (0, 0) = index 0 these are the offsets to check for neighbours in 
+    // a flat vector. We precompute these for every location to avoid
+    // recalculating them every iteration.
+    let combos = [
+        (-1isize, 0isize), (1, 0), (0, -1), (0, 1),
+        (-1, -1), (-1, 1), (1, -1), (1, 1)
+    ];
+
+    let mut indexes_to_check: Vec<Vec<usize>> = Vec::new();
+    for index in 0..locations.len() {
+        let row = index / num_cols;
+        let col = index % num_cols;
+        let mut neighbour_indexes: Vec<usize> = Vec::new();
+        for (dr, dc) in &combos {
+            let new_row = row as isize + dr;
+            let new_col = col as isize + dc;
+            // Bounds check using signed values
+            if new_row < 0 || new_col < 0 || new_row >= num_rows as isize || new_col >= num_cols as isize {
+                continue;
+            }
+            let neighbour_index = (new_row as usize) * num_cols + (new_col as usize);
+            neighbour_indexes.push(neighbour_index);
+        }
+        indexes_to_check.push(neighbour_indexes);
+    }
+
+    let mut answer = 0;
+    let mut mask = locations.iter().enumerate().filter(|&(_, &v)| v == 1).map(|(i, _)| i).collect::<Vec<usize>>();
+    loop {
+        let current_answer = answer;
+        // Create new bit vector and set of non-zero locations for next iteration
+        let mut new_locations = locations.clone();
+        let mut new_mask = Vec::new();
+        
+        for index in mask {
+            let mut neighbours = 0;
+
+            for neighbour_index in &indexes_to_check[index] {
+                if locations[*neighbour_index] == 1 {
+                    neighbours += 1;
+                }
+            }
+  
             if neighbours <= 3 {
                 answer += 1;
                 new_locations[index] = 0;
@@ -201,7 +266,7 @@ fn main() {
     let contents = include_str!("./input.txt");
     let part_1_answer = part_1_fast(contents);
     println!("Answer for part 1 is: {}", part_1_answer);
-    let part_2_answer = part_2_fast(contents);
+    let part_2_answer = part_2_faster(contents);
     println!("Answer for part 2 is: {}", part_2_answer);
     let duration = start.elapsed();
     println!("Took {:?} to solve this puzzle", duration);
