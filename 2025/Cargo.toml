@@ -10,3 +10,19 @@ rstest = "0.15.0"
 
 [[example]]
 name = "puzzle_1"
+
+[[example]]
+name = "puzzle_2"
+
+[[example]]
+name = "puzzle_3"
+
+[[example]]
+name = "puzzle_4"
+
+[[example]]
+name = "puzzle_5"
+
+[[example]]
+name = "puzzle_6"
+
