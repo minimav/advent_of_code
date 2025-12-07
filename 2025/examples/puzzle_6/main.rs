@@ -44,12 +44,14 @@ fn part_2(contents: &str) -> u64 {
     let num_lines = lines.len();
 
     let mut flipped: Vec<String> = Vec::with_capacity(num_cols);
+    let lines_bytes: Vec<&[u8]> = lines.iter().map(|s| s.as_bytes()).collect();
     for col in 0..num_cols {
-        let mut new_line = String::new();
-        for line in &lines {
-            new_line.push(line.chars().nth(col).unwrap());
+        let mut buffer: Vec<u8> = Vec::with_capacity(num_lines);
+        for row in (0..num_lines) {
+            buffer.push(lines_bytes[row][col]);
         }
-        flipped.push(new_line);
+        let s = unsafe { String::from_utf8_unchecked(buffer) };
+        flipped.push(s);
     }
 
     let mut answer = 0;
