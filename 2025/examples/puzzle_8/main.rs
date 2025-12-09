@@ -3,12 +3,58 @@ use std::collections::HashMap;
 use std::collections::BinaryHeap;
 use std::cmp::Reverse;
 
+// Disjoint set union with sizes
+struct DSU {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+}
 
-fn get_coords_and_distances(contents: &str) -> (Vec<Vec<i64>>, BinaryHeap<Reverse<(i64, (usize, usize))>>) {
+impl DSU {
+    fn new(n: usize) -> Self {
+        let mut parent = vec![0usize; n];
+        for i in 0..n { parent[i] = i; }
+        DSU { parent, size: vec![1usize; n] }
+    }
+    fn find(&mut self, mut x: usize) -> usize {
+        let mut root = x;
+        while self.parent[root] != root { root = self.parent[root]; }
+        // path compression
+        while self.parent[x] != root {
+            let next = self.parent[x];
+            self.parent[x] = root;
+            x = next;
+        }
+        root
+    }
+
+    fn union(&mut self, a: usize, b: usize) -> bool {
+        let ra = self.find(a);
+        let rb = self.find(b);
+        if ra == rb { return false; }
+
+        if self.size[ra] < self.size[rb] {
+            self.parent[ra] = rb;
+            self.size[rb] += self.size[ra];
+        } else {
+            self.parent[rb] = ra;
+            self.size[ra] += self.size[rb];
+        }
+        return true
+    }
+
+    fn comp_size(&mut self, x: usize) -> usize {
+        let r = self.find(x);
+        return self.size[r]
+    }
+}
+
+
+fn get_coords_and_distances(contents: &str) -> (Vec<[i64; 3]>, BinaryHeap<Reverse<(i64, (usize, usize))>>) {
     let lines: Vec<&str> = contents.lines().collect();
-    let mut coords: Vec<Vec<i64>> = Vec::new();
+    let mut coords: Vec<[i64; 3]> = Vec::new();
     for line in lines {
-        let coord = line.split(",").map(|s| s.parse::<i64>().unwrap()).collect::<Vec<_>>();
+        let coord_v = line.split(",").map(|s| s.parse::<i64>().unwrap()).collect::<Vec<_>>();
+        let coord: [i64; 3] = [coord_v[0], coord_v[1], coord_v[2]];
         coords.push(coord);
     }
 
@@ -25,36 +71,20 @@ fn get_coords_and_distances(contents: &str) -> (Vec<Vec<i64>>, BinaryHeap<Revers
 }
 
 fn part_1(
-    coords: Vec<Vec<i64>>,
+    coords: Vec<[i64; 3]>,
     mut distances: BinaryHeap<Reverse<(i64, (usize, usize))>>,
     num_pairs: usize
 ) -> u64 {
-    let mut next_group = 1;
-    let mut groups = vec![0; coords.len()];
+    let num_coords = coords.len();
+    let mut groups = DSU::new(num_coords);
     for _ in 0..num_pairs {
         let Reverse(item) = distances.pop().unwrap();
         let (i, j) = item.1;
-        if groups[i] == 0 && groups[j] == 0 {
-            groups[i] = next_group;
-            groups[j] = next_group;
-            next_group += 1;
-        } else if groups[i] != 0 && groups[j] == 0 {
-            groups[j] = groups[i];
-        } else if groups[i] == 0 && groups[j] != 0 {
-            groups[i] = groups[j];
-        } else if groups[i] != groups[j] {
-            let old_group = groups[j];
-            let new_group = groups[i];
-            for g in &mut groups {
-                if *g == old_group {
-                    *g = new_group;
-                }
-            }
-        }
+        groups.union(i, j);
     }
 
     let mut group_sizes: HashMap<usize, usize> = HashMap::new();
-    for g in groups {
+    for g in (0..num_coords).map(|v| groups.find(v)) {
         if g == 0 {
             continue;
         }
@@ -67,43 +97,16 @@ fn part_1(
 }
 
 fn part_2(
-    coords: Vec<Vec<i64>>,
+    coords: Vec<[i64; 3]>,
     mut distances: BinaryHeap<Reverse<(i64, (usize, usize))>>,
 ) -> u64 {
-    let mut num_groups = 0;
-    let mut next_group = 1;
-    let mut num_zeros = coords.len();
-    let mut groups = vec![0; coords.len()];
+    let num_coords = coords.len();
+    let mut groups = DSU::new(num_coords);
     while distances.peek().is_some() {
         let Reverse(item) = distances.pop().unwrap();
         let (i, j) = item.1;
-        if groups[i] == 0 && groups[j] == 0 {
-            groups[i] = next_group;
-            groups[j] = next_group;
-            next_group += 1;
-            num_groups += 1;
-            num_zeros -= 2;
-        } else if groups[i] != 0 && groups[j] == 0 {
-            groups[j] = groups[i];
-            num_zeros -= 1;
-        } else if groups[i] == 0 && groups[j] != 0 {
-            groups[i] = groups[j];
-            num_zeros -= 1;
-        } else if groups[i] != groups[j] {
-            num_groups -= 1;
-
-            let old_group = groups[j];
-            let new_group = groups[i];
-            for g in &mut groups {
-                if *g == old_group {
-                    *g = new_group;
-                }
-            }
-        }
-
-        // Check exit condition of returning to a single group *and* that
-        // everything should be assigned to a group
-        if num_groups == 1 && num_zeros == 0 {
+        groups.union(i, j);
+        if groups.comp_size(j) == num_coords {
             return (coords[i][0] * coords[j][0]) as u64;
         } 
     }
