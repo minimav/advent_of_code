@@ -38,6 +38,11 @@ fn part_2(contents: &str) -> i64 {
         let coord_1 = &coords[i];
         for j in i+1..coords.len() {
             let coord_2 = &coords[j];
+            let area = ((coord_1[0] - coord_2[0]).abs() + 1) * ((coord_1[1] - coord_2[1]).abs() + 1);
+            if area <= max_area {
+                // no point checking in this case
+                continue
+            }
 
             let min_x = std::cmp::min(coord_1[0], coord_2[0]);
             let max_x = std::cmp::max(coord_1[0], coord_2[0]);
@@ -77,11 +82,8 @@ fn part_2(contents: &str) -> i64 {
                 continue
             }
 
-            let area = ((coord_1[0] - coord_2[0]).abs() + 1) * ((coord_1[1] - coord_2[1]).abs() + 1);
             //println!("VALID {:?} --> {:?} ({})", coord_1, coord_2, area);
-            if area > max_area {
-                max_area = area;
-            }
+            max_area = area;
         }
     }
     return max_area;
