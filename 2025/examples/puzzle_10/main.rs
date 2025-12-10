@@ -1,6 +1,7 @@
 use std::time::Instant;
 use itertools::Itertools;
 use nalgebra::{DMatrix, SVD};
+use microlp::{Problem, OptimizationDirection, ComparisonOp};
 
 
 fn find_minimal_presses(line: &str) -> u32 {
@@ -74,18 +75,43 @@ fn find_minimal_presses(line: &str) -> u32 {
     */
 }
 
-fn joltages(line: &str) -> u32 {
+fn joltages(line: &str) -> f64 {
     let components: Vec<&str> = line.split(" ").collect();
-    let num_columns = components[0].len() - 2;
     let raw_buttons = &components[1..components.len() - 1];
     let raw_jolts = components[components.len() - 1];
 
+    let jolts = raw_jolts[1..raw_jolts.len() - 1].split(",").map(|n| n.parse::<i32>().unwrap()).collect::<Vec<i32>>();
+
+    let num_rows = jolts.len();
+    let num_columns = raw_buttons.len();
+    let max_presses = jolts.iter().max().unwrap();
+
+    let mut problem = Problem::new(OptimizationDirection::Minimize);
+    
+    let variables: Vec<_> = (0..raw_buttons.len()).map(
+        |_| problem.add_integer_var(1.0, (0, *max_presses))
+    ).collect();
+
+    let mut constraints = vec![vec![]; num_rows];
+    for (variable_index, raw_button) in raw_buttons.into_iter().enumerate() {
+        for c in raw_button[1..raw_button.len() - 1].split(",") {
+            let row_index = c.parse::<usize>().unwrap();
+            constraints[row_index].push((variables[variable_index], 1.0))
+        }
+    }
+
+    constraints.into_iter().enumerate().for_each(|(i, c)| {
+        problem.add_constraint(c, ComparisonOp::Eq, jolts[i].into());
+    });
+    let solution = problem.solve().unwrap();
+    //println!("{:?}", solution.objective());
+    return solution.objective();
+
+    /* Pseudo-inverse approach won't give integer solutions
     let jolts = raw_jolts[1..raw_jolts.len() - 1].split(",").map(|n| n.parse::<f64>().unwrap()).collect::<Vec<f64>>();
     let jolts_matrix = DMatrix::<f64>::from_column_slice(jolts.len(), 1, &jolts);
 
     // Parse the buttons into a matrix
-    let num_rows = jolts.len();
-    let num_columns = raw_buttons.len();
     let mut buttons = DMatrix::<f64>::zeros(num_rows, num_columns);
     for (col_index, raw_button) in raw_buttons.into_iter().enumerate() {
         for c in raw_button[1..raw_button.len() - 1].split(",") {
@@ -94,22 +120,18 @@ fn joltages(line: &str) -> u32 {
         }
     }
 
-    /*
-    println!("{:?}", jolts_matrix);
-    println!("{:?}", buttons);
-    */
     let buttons_svd = SVD::new(buttons, true, true);
-    let buttons_inv = buttons_svd.pseudo_inverse(1e-10).unwrap();
+    let buttons_inv = buttons_svd.pseudo_inverse(1e-5).unwrap();
     let result = buttons_inv * jolts_matrix;
-    println!("{:?}", result);
-    return 0;
+    return result.sum();
+    */
 }
 
 fn part_1(contents: &str) -> u32 {
     return contents.lines().map(|line| find_minimal_presses(line)).sum();
 }
 
-fn part_2(contents: &str) -> u32 {
+fn part_2(contents: &str) -> f64 {
     return contents.lines().map(|line| joltages(line)).sum();
 }
 
@@ -144,25 +166,24 @@ mod tests {
 
     #[test]
     fn test_part_2_single_line_1() {
-        assert_eq!(joltages("[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}"), 10);
+        assert_eq!(joltages("[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}"), 10.0);
     }
 
-    /*
     #[test]
     fn test_part_2_single_line_2() {
-        assert_eq!(joltages("[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}"), 12);
+        assert_eq!(joltages("[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}"), 12.0);
     }
 
     #[test]
     fn test_part_2_single_line_3() {
-        assert_eq!(joltages("[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}"), 11);
+        assert_eq!(joltages("[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}"), 11.0);
     }
 
     #[test]
     fn test_part_2_example() {
-        assert_eq!(part_2(include_str!("./example.txt")), 33);
+        assert_eq!(part_2(include_str!("./example.txt")), 33.0);
     }
-        */
+
 }
 
 fn main() {

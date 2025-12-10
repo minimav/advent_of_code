@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 itertools = "0.14.0"
+microlp = "0.2.11"
 nalgebra = "0.32"
 
 [dev-dependencies]
